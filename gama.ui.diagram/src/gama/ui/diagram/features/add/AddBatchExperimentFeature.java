@@ -17,7 +17,8 @@ public class AddBatchExperimentFeature extends AbstractAddShapeFeature {
 	public static final int INIT_WIDTH = 300;
 	public static final int INIT_HEIGHT = 50;
 
-	private static final List<Integer> CLASS_BACKGROUND = Arrays.asList(153, 204, 255);
+	private static final List<Integer> CLASS_BACKGROUND = ColorDisplay.NODE_BLUE;
+	private static final List<Integer> LEGACY_BACKGROUND = List.of(153, 204, 255);
 
 	public AddBatchExperimentFeature(final IFeatureProvider fp) {
 		super(fp);
@@ -51,18 +52,16 @@ public class AddBatchExperimentFeature extends AbstractAddShapeFeature {
 
 		{
 			// create and set graphics algorithm
-			RoundedRectangle roundedRectangle = gaService.createRoundedRectangle(containerShape, 5, 5);
+			RoundedRectangle roundedRectangle = gaService.createRoundedRectangle(containerShape, 12, 12);
 			roundedRectangle.setForeground(manageColor(error ? ColorDisplay.CLASS_FOREGROUND_ERROR
-				: ColorDisplay.CLASS_FOREGROUND_OK));
+				: ColorDisplay.CLASS_FOREGROUND_DEFAULT));
 
-			if ( addedClass.getColorPicto().isEmpty() ) {
-				addedClass.getColorPicto().addAll(CLASS_BACKGROUND);
-			}
 			List<Integer> currentColor = addedClass.getColorPicto();
+			ColorDisplay.applyDefaultColor(currentColor, LEGACY_BACKGROUND, CLASS_BACKGROUND);
 			Color color =
 				gaService.manageColor(getDiagram(), currentColor.get(0), currentColor.get(1), currentColor.get(2));
 			roundedRectangle.setBackground(color);
-			roundedRectangle.setLineWidth(error ? 4 : 2);
+			roundedRectangle.setLineWidth(error ? 2 : 1);
 			gaService.setLocationAndSize(roundedRectangle, context.getX(), context.getY(), width, height);
 
 			// if added Class has no resource we add it to the resource
@@ -83,7 +82,7 @@ public class AddBatchExperimentFeature extends AbstractAddShapeFeature {
 			// create and set graphics algorithm
 			Polyline polyline = gaService.createPolyline(shape, new int[] { 0, 20, width, 20 });
 			polyline.setForeground(manageColor(ColorDisplay.BLACK));
-			polyline.setLineWidth(2);
+			polyline.setLineWidth(1);
 		}
 
 		// SHAPE WITH TEXT
@@ -93,10 +92,10 @@ public class AddBatchExperimentFeature extends AbstractAddShapeFeature {
 
 			// create and set text graphics algorithm
 			Text text = gaService.createDefaultText(getDiagram(), shape, addedClass.getName());
-			text.setForeground(manageColor(ColorDisplay.CLASS_TEXT_FOREGROUND));
+			text.setForeground(manageColor(ColorDisplay.nodeTextColor(addedClass.getColorPicto())));
 			text.setHorizontalAlignment(Orientation.ALIGNMENT_CENTER);
 			text.setVerticalAlignment(Orientation.ALIGNMENT_CENTER);
-			text.setFont(gaService.manageFont(getDiagram(), "Arial", 12, false, true));
+			text.setFont(gaService.manageFont(getDiagram(), "Arial", 14, false, true));
 			gaService.setLocationAndSize(text, 0, 0, width, 20);
 
 			// create link and wire it

@@ -1,7 +1,6 @@
 package gama.ui.diagram.features.add;
 
-import gama.*;
-import gama.ui.diagram.metamodel.EVariable;
+import gama.ui.diagram.features.layout.LayoutCommonFeature;
 import gama.ui.diagram.metamodel.EWorldAgent;
 import gama.ui.diagram.swt.image.GamaImageProvider;
 
@@ -19,7 +18,8 @@ public class AddWorldFeature extends AbstractAddShapeFeature {
 	public static final int INIT_WIDTH = 220;
 	public static final int INIT_HEIGHT = 100;
 
-	private static final List<Integer> CLASS_BACKGROUND = Arrays.asList(255, 255, 210);
+	private static final List<Integer> CLASS_BACKGROUND = ColorDisplay.NODE_NEUTRAL;
+	private static final List<Integer> LEGACY_BACKGROUND = List.of(255, 255, 210);
 
 	public AddWorldFeature(final IFeatureProvider fp) {
 		super(fp);
@@ -53,17 +53,15 @@ public class AddWorldFeature extends AbstractAddShapeFeature {
 
 		{
 			// create and set graphics algorithm
-			RoundedRectangle roundedRectangle = gaService.createRoundedRectangle(containerShape, 5, 5);
+			RoundedRectangle roundedRectangle = gaService.createRoundedRectangle(containerShape, 12, 12);
 			roundedRectangle.setForeground(manageColor(error ? ColorDisplay.CLASS_FOREGROUND_ERROR
-				: ColorDisplay.CLASS_FOREGROUND_OK));
-			if ( addedClass.getColorPicto().isEmpty() ) {
-				addedClass.getColorPicto().addAll(CLASS_BACKGROUND);
-			}
+				: ColorDisplay.CLASS_FOREGROUND_DEFAULT));
 			List<Integer> currentColor = addedClass.getColorPicto();
+			ColorDisplay.applyDefaultColor(currentColor, LEGACY_BACKGROUND, CLASS_BACKGROUND);
 			Color color =
 				gaService.manageColor(getDiagram(), currentColor.get(0), currentColor.get(1), currentColor.get(2));
 			roundedRectangle.setBackground(color);
-			roundedRectangle.setLineWidth(error ? 4 : 2);
+			roundedRectangle.setLineWidth(error ? 2 : 1);
 			gaService.setLocationAndSize(roundedRectangle, context.getX(), context.getY(), width, height);
 
 			// if added Class has no resource we add it to the resource
@@ -84,7 +82,7 @@ public class AddWorldFeature extends AbstractAddShapeFeature {
 			// create and set graphics algorithm
 			Polyline polyline = gaService.createPolyline(shape, new int[] { 0, 20, width, 20 });
 			polyline.setForeground(manageColor(ColorDisplay.BLACK));
-			polyline.setLineWidth(2);
+			polyline.setLineWidth(1);
 		}
 
 		// SHAPE WITH TEXT
@@ -94,10 +92,10 @@ public class AddWorldFeature extends AbstractAddShapeFeature {
 
 			// create and set text graphics algorithm
 			Text text = gaService.createDefaultText(getDiagram(), shape, addedClass.getName());
-			text.setForeground(manageColor(ColorDisplay.CLASS_TEXT_FOREGROUND));
+			text.setForeground(manageColor(ColorDisplay.nodeTextColor(addedClass.getColorPicto())));
 			text.setHorizontalAlignment(Orientation.ALIGNMENT_CENTER);
 			text.setVerticalAlignment(Orientation.ALIGNMENT_CENTER);
-			text.setFont(gaService.manageFont(getDiagram(), "Arial", 12, false, true));
+			text.setFont(gaService.manageFont(getDiagram(), "Arial", 14, false, true));
 
 			gaService.setLocationAndSize(text, 0, 0, width, 20);
 
@@ -108,12 +106,9 @@ public class AddWorldFeature extends AbstractAddShapeFeature {
 			// create shape for text
 			Shape shape2 = peCreateService.createShape(containerShape, false);
 			// create and set text graphics algorithm
-			String variables = "";
-			for ( EVariable var : addedClass.getVariables() ) {
-				variables += (var.getType().isEmpty() ? "var" : var.getType()) + " " + var.getName() + "\n";
-			}
-			Text text2 = gaService.createDefaultText(getDiagram(), shape2, variables);
-			text2.setForeground(manageColor(ColorDisplay.CLASS_TEXT_FOREGROUND));
+			MultiText text2 = gaService.createDefaultMultiText(getDiagram(), shape2,
+					LayoutCommonFeature.attributes(addedClass));
+			text2.setForeground(manageColor(ColorDisplay.nodeTextColor(addedClass.getColorPicto())));
 			text2.setHorizontalAlignment(Orientation.ALIGNMENT_LEFT);
 			text2.setVerticalAlignment(Orientation.ALIGNMENT_TOP);
 			text2.setFont(gaService.manageFont(getDiagram(), "Arial", 12, false, false));

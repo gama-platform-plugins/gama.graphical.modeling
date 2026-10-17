@@ -1,65 +1,38 @@
 package gama.ui.diagram.features.layout;
 
-
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.draw2d.PositionConstants;
 import org.eclipse.draw2d.geometry.Insets;
-import org.eclipse.draw2d.graph.CompoundDirectedGraph;
-import org.eclipse.draw2d.graph.CompoundDirectedGraphLayout;
+import org.eclipse.draw2d.graph.DirectedGraph;
+import org.eclipse.draw2d.graph.DirectedGraphLayout;
 import org.eclipse.draw2d.graph.Edge;
-import org.eclipse.draw2d.graph.EdgeList;
 import org.eclipse.draw2d.graph.Node;
-import org.eclipse.draw2d.graph.NodeList;
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.graphiti.features.IFeatureProvider;
 import org.eclipse.graphiti.features.context.ICustomContext;
 import org.eclipse.graphiti.features.custom.AbstractCustomFeature;
-import org.eclipse.graphiti.mm.algorithms.GraphicsAlgorithm;
 import org.eclipse.graphiti.mm.pictograms.AnchorContainer;
 import org.eclipse.graphiti.mm.pictograms.Connection;
+import org.eclipse.graphiti.mm.pictograms.ContainerShape;
 import org.eclipse.graphiti.mm.pictograms.Diagram;
+import org.eclipse.graphiti.mm.pictograms.FreeFormConnection;
 import org.eclipse.graphiti.mm.pictograms.Shape;
+import org.eclipse.graphiti.services.Graphiti;
 
-public class LayoutDiagramFeature  extends AbstractCustomFeature {
+import gama.ui.diagram.metamodel.EExperiment;
+import gama.ui.diagram.metamodel.EGamaObject;
+import gama.ui.diagram.metamodel.ESpecies;
 
-	/**
-	 * Minimal distance between nodes.
-	 */
+public class LayoutDiagramFeature extends AbstractCustomFeature {
 
-
-	public LayoutDiagramFeature(IFeatureProvider fp) {
+	public LayoutDiagramFeature(final IFeatureProvider fp) {
 		super(fp);
 	}
 
-	/*public static void execute( Diagram d) {
-			
-				 DiagramLayoutEngine.Parameters params = new DiagramLayoutEngine.Parameters();
-	     params.addLayoutRun().configure(ElkGraphElement.class)
-	              .setProperty(CoreOptions.ALGORITHM, ForceOptions.ALGORITHM_ID)
-	              .setProperty(CoreOptions.SPACING_COMPONENT_COMPONENT, 50.0);
-	     
-              .setProperty(CoreOptions.SPACING_COMPONENT_COMPONENT, 50.0)
-	              .setProperty(CoreOptions.SPACING_EDGE_EDGE, 10.0)
-	              .setProperty(CoreOptions.SPACING_EDGE_NODE, 20.0)
-	              .setProperty(CoreOptions.SPACING_NODE_NODE, 30.0)
-	              .setProperty(CoreOptions.ASPECT_RATIO, 1.0)
-	              .setProperty(CoreOptions.MARGINS, new ElkMargin(20,20,20,20))
-	              
-	              .setProperty(CoreOptions.EXPAND_NODES, true);
-		 DiagramLayoutEngine.invokeLayout(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getActivePart(),d,params);
-		
-	}*/
-	
-
-	/**
-	 * Minimal distance between nodes.
-	 */
-	private static final int PADDING = 30;
-
 	@Override
 	public String getDescription() {
-		return "Layout diagram"; 
+		return "Fit boxes to their contents and arrange the model in a top-down hierarchy";
 	}
 
 	@Override
@@ -68,74 +41,59 @@ public class LayoutDiagramFeature  extends AbstractCustomFeature {
 	}
 
 	@Override
-	public boolean canExecute(ICustomContext context) {
-		return true;
+	public boolean canExecute(final ICustomContext context) {
+		return getDiagram() != null && !getDiagram().getChildren().isEmpty();
 	}
 
 	@Override
-	public void execute(ICustomContext context) {
-		final CompoundDirectedGraph graph = mapDiagramToGraph(getDiagram());
-		graph.setDefaultPadding(new Insets(PADDING));
-		new CompoundDirectedGraphLayout().visit(graph);
-		mapGraphCoordinatesToDiagram(graph);
-	}
-	
-
-	public static void execute(Diagram d) {
-		final CompoundDirectedGraph graph = mapDiagramToGraph(d);
-		graph.setDefaultPadding(new Insets(PADDING));
-		new CompoundDirectedGraphLayout().visit(graph);
-		mapGraphCoordinatesToDiagram(graph);
+	public void execute(final ICustomContext context) {
+		execute(getDiagram());
 	}
 
-
-
-	private static Diagram mapGraphCoordinatesToDiagram(CompoundDirectedGraph graph) {
-		NodeList myNodes = new NodeList();
-		myNodes.addAll(graph.nodes);
-		myNodes.addAll(graph.subgraphs);
-		for (Object object : myNodes) {
-			Node node = (Node) object;
-			Shape shape = (Shape) node.data;
-			shape.getGraphicsAlgorithm().setX(node.x);
-			shape.getGraphicsAlgorithm().setY(node.y);
-			shape.getGraphicsAlgorithm().setWidth(node.width);
-			shape.getGraphicsAlgorithm().setHeight(node.height);
+	public static void execute(final Diagram diagram) {
+		final DirectedGraph graph = new DirectedGraph();
+		graph.setDirection(PositionConstants.SOUTH);
+		graph.setDefaultPadding(new Insets(60, 30, 60, 30));
+		graph.setMargin(new Insets(30));
+		final Map<AnchorContainer, Node> nodes = new HashMap<>();
+		for (final Shape shape : diagram.getChildren()) {
+			final Object object = Graphiti.getLinkService().getBusinessObjectForLinkedPictogramElement(shape);
+			if (shape instanceof ContainerShape && object instanceof EGamaObject) {
+				LayoutCommonFeature.layout((ContainerShape) shape, diagram, (EGamaObject) object, true);
+			}
+			final var bounds = shape.getGraphicsAlgorithm();
+			if (bounds == null) continue;
+			final Node node = new Node(shape);
+			node.width = bounds.getWidth();
+			node.height = bounds.getHeight();
+			graph.nodes.add(node);
+			nodes.put(shape, node);
 		}
-		return null;
-	}
-
-
-	private static CompoundDirectedGraph mapDiagramToGraph(Diagram d) {
-		Map<AnchorContainer, Node> shapeToNode = new HashMap<AnchorContainer, Node>();
-		CompoundDirectedGraph dg = new CompoundDirectedGraph();
-		EdgeList edgeList = new EdgeList();
-		NodeList nodeList = new NodeList();
-		EList<Shape> children = d.getChildren();
-		for (Shape shape : children) {
-			Node node = new Node();
-			GraphicsAlgorithm ga = shape.getGraphicsAlgorithm();
-			node.x = ga.getX();
-			node.y = ga.getY();
-			node.width = ga.getWidth();
-			node.height = ga.getHeight();
-			node.data = shape;
-			shapeToNode.put(shape, node);
-			nodeList.add(node);
+		if (graph.nodes.isEmpty()) return;
+		for (final Connection connection : diagram.getConnections()) {
+			if (connection.getStart() == null || connection.getEnd() == null) continue;
+			final Node source = nodes.get(connection.getStart().getParent());
+			final Node target = nodes.get(connection.getEnd().getParent());
+			// Self-relations and connections outside this diagram do not constrain node placement.
+			if (source == null || target == null || source == target) continue;
+			final Edge edge = new Edge(connection, source, target);
+			final Object targetObject = Graphiti.getLinkService()
+					.getBusinessObjectForLinkedPictogramElement((Shape) target.data);
+			final boolean structural = targetObject instanceof ESpecies || targetObject instanceof EExperiment;
+			edge.setDelta(structural ? 2 : 1);
+			edge.weight = structural ? 4 : 1;
+			graph.edges.add(edge);
 		}
-		EList<Connection> connections = d.getConnections();
-		for (Connection connection : connections) {
-			AnchorContainer source = connection.getStart().getParent();
-			AnchorContainer target = connection.getEnd().getParent();
-			Edge edge = new Edge(shapeToNode.get(source), shapeToNode.get(target));
-			edge.data = connection;
-			edgeList.add(edge);
+		new DirectedGraphLayout().visit(graph);
+		for (final Node node : graph.nodes) {
+			final var bounds = ((Shape) node.data).getGraphicsAlgorithm();
+			bounds.setX(node.x);
+			bounds.setY(node.y);
 		}
-		dg.nodes = nodeList;
-		dg.edges = edgeList;
-		return dg;
+		for (final Connection connection : diagram.getConnections()) {
+			if (connection instanceof FreeFormConnection) {
+				((FreeFormConnection) connection).getBendpoints().clear();
+			}
+		}
 	}
-
-
-
 }

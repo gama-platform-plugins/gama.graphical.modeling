@@ -14,7 +14,6 @@ import org.eclipse.graphiti.mm.pictograms.PictogramElement;
 import org.eclipse.graphiti.services.Graphiti;
 import org.eclipse.graphiti.services.IGaService;
 import org.eclipse.graphiti.services.IPeCreateService;
-import org.eclipse.graphiti.util.IColorConstant;
 
 import gama.ui.diagram.metamodel.EInheritLink;
 
@@ -39,8 +38,8 @@ public class AddInheritingLinkFeature extends AbstractAddFeature {
         IGaService gaService = Graphiti.getGaService();
         Polyline polyline = gaService.createPolyline(connection);
         polyline.setLineStyle(LineStyle.DASH);
-        polyline.setLineWidth(2);
-        polyline.setForeground(manageColor(IColorConstant.BLACK));
+        polyline.setLineWidth(1);
+        polyline.setForeground(manageColor(ColorDisplay.RELATION_FOREGROUND));
  
         // create link and wire it
         link(connection, addedEReference);
@@ -51,7 +50,7 @@ public class AddInheritingLinkFeature extends AbstractAddFeature {
             0.5, true);
         Text text = gaService.createText(textDecorator);
         		//createDefaultText(textDecorator);
-        text.setForeground(manageColor(IColorConstant.BLACK));
+        text.setForeground(manageColor(ColorDisplay.RELATION_TEXT_FOREGROUND));
         gaService.setLocation(text, 10, 0);
         text.setValue("inherits from");
  
@@ -80,8 +79,8 @@ public class AddInheritingLinkFeature extends AbstractAddFeature {
         Polyline polyline =
             gaService.createPolyline(gaContainer, new int[] { -15, 10, 0, 0, -15,
                 -10 });
-        polyline.setForeground(manageColor(IColorConstant.BLACK));
-        polyline.setLineWidth(2);
+        polyline.setForeground(manageColor(ColorDisplay.RELATION_FOREGROUND));
+        polyline.setLineWidth(1);
         return polyline;
     }
 }

@@ -6,11 +6,15 @@ import org.eclipse.graphiti.features.IFeatureProvider;
 import org.eclipse.graphiti.features.context.ICustomContext;
 import org.eclipse.graphiti.features.custom.AbstractCustomFeature;
 import org.eclipse.graphiti.mm.algorithms.styles.Color;
+import org.eclipse.graphiti.mm.algorithms.AbstractText;
+import org.eclipse.graphiti.mm.pictograms.ContainerShape;
 import org.eclipse.graphiti.mm.pictograms.PictogramElement;
+import org.eclipse.graphiti.mm.pictograms.Shape;
 import org.eclipse.graphiti.services.Graphiti;
 import org.eclipse.graphiti.services.IGaService;
 
 import gama.ui.diagram.metamodel.EGamaObject;
+import gama.ui.diagram.features.add.ColorDisplay;
 
 public class ChangeColorEGamaObjectFeature extends AbstractCustomFeature {
  
@@ -64,6 +68,16 @@ public class ChangeColorEGamaObjectFeature extends AbstractCustomFeature {
                     eClass.getColorPicto().add(newColor.getRed());
                     eClass.getColorPicto().add(newColor.getGreen());
                     eClass.getColorPicto().add(newColor.getBlue());
+                    if (pes[0] instanceof ContainerShape) {
+                        final org.eclipse.graphiti.util.IColorConstant textColor =
+                                ColorDisplay.nodeTextColor(currentColor);
+                        for (final Shape child : ((ContainerShape) pes[0]).getChildren()) {
+                            if (child.getGraphicsAlgorithm() instanceof AbstractText) {
+                                child.getGraphicsAlgorithm().setForeground(gaService.manageColor(getDiagram(),
+                                        textColor.getRed(), textColor.getGreen(), textColor.getBlue()));
+                            }
+                        }
+                    }
                     this.hasDoneChanges = true;
                     
                 }

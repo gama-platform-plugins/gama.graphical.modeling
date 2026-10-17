@@ -26,10 +26,22 @@ import org.eclipse.emf.transaction.RecordingCommand;
 import org.eclipse.emf.transaction.TransactionalEditingDomain;
 import org.eclipse.emf.transaction.util.TransactionUtil;
 import org.eclipse.graphiti.internal.util.T;
+import org.eclipse.graphiti.mm.algorithms.GraphicsAlgorithm;
+import org.eclipse.graphiti.mm.algorithms.AbstractText;
+import org.eclipse.graphiti.mm.algorithms.MultiText;
+import org.eclipse.graphiti.mm.algorithms.Polyline;
+import org.eclipse.graphiti.mm.algorithms.RoundedRectangle;
+import org.eclipse.graphiti.mm.algorithms.Text;
+import org.eclipse.graphiti.mm.pictograms.Connection;
+import org.eclipse.graphiti.mm.pictograms.ConnectionDecorator;
+import org.eclipse.graphiti.mm.pictograms.ContainerShape;
 import org.eclipse.graphiti.mm.pictograms.Diagram;
 import org.eclipse.graphiti.mm.pictograms.Shape;
+import org.eclipse.graphiti.services.Graphiti;
+import org.eclipse.graphiti.services.IGaService;
 import org.eclipse.graphiti.ui.editor.DiagramBehavior;
 import org.eclipse.graphiti.ui.editor.DiagramEditor;
+import org.eclipse.graphiti.util.IColorConstant;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CLabel;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -52,6 +64,8 @@ import gama.api.GAMA;
 import gama.api.compilation.GamlCompilationError;
 import gama.api.compilation.descriptions.IDescription;
 import gama.api.types.map.GamaMapFactory;
+import gama.ui.diagram.features.add.ColorDisplay;
+import gama.ui.diagram.features.layout.LayoutCommonFeature;
 import gama.ui.diagram.features.modelgeneration.ModelGenerator;
 import gama.ui.diagram.metamodel.EAction;
 import gama.ui.diagram.metamodel.EAspect;
@@ -158,6 +172,139 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 	 * Instantiates a new gama diagram editor.
 	 */
 	public GamaDiagramEditor() {}
+
+	private void updateAppearanceIfNeeded() {
+		final Diagram currentDiagram = getDiagramTypeProvider().getDiagram();
+		if (hasLegacyAppearance(currentDiagram)) {
+			getEditingDomain().getCommandStack().execute(new RecordingCommand(getEditingDomain()) {
+				@Override
+				protected void doExecute() {
+					updateDiagramAppearance(currentDiagram);
+				}
+			});
+		}
+	}
+
+	private boolean hasLegacyAppearance(final Diagram currentDiagram) {
+		if (currentDiagram.getGridUnit() != 0 || currentDiagram.getVerticalGridUnit() != 0
+				|| currentDiagram.isSnapToGrid()) return true;
+		for (final Shape shape : currentDiagram.getChildren()) {
+			final Object businessObject =
+					getDiagramTypeProvider().getFeatureProvider().getBusinessObjectForPictogramElement(shape);
+			if (!(businessObject instanceof EGamaObject)) continue;
+			final EGamaObject gamaObject = (EGamaObject) businessObject;
+			final GraphicsAlgorithm graphicsAlgorithm = shape.getGraphicsAlgorithm();
+			final List<Integer> color = ColorDisplay.updatedNodeColor(gamaObject.getColorPicto());
+			final boolean error = Boolean.TRUE.equals(gamaObject.getHasError());
+			if (graphicsAlgorithm == null || !(graphicsAlgorithm instanceof RoundedRectangle)
+					|| graphicsAlgorithm.getLineWidth() != (error ? 2 : 1)
+					|| !matches(graphicsAlgorithm.getForeground(),
+							error ? ColorDisplay.CLASS_FOREGROUND_ERROR : ColorDisplay.CLASS_FOREGROUND_DEFAULT)
+					|| !matches(graphicsAlgorithm.getBackground(), color)) return true;
+			if (gamaObject.getColorPicto().isEmpty()
+					|| !gamaObject.getColorPicto().equals(color)) return true;
+			if (shape instanceof ContainerShape) {
+				for (final Shape child : ((ContainerShape) shape).getChildren()) {
+					if (child.getGraphicsAlgorithm() instanceof AbstractText) {
+						final AbstractText text = (AbstractText) child.getGraphicsAlgorithm();
+						final boolean title = LayoutCommonFeature.isTitle(text);
+						final org.eclipse.graphiti.mm.algorithms.styles.Font font = text.getFont();
+						if (!matches(text.getForeground(), ColorDisplay.nodeTextColor(color)) || font == null
+								|| font.getSize() != (title ? 14 : 12) || font.isBold() != title
+								|| !title && !(text instanceof MultiText)) return true;
+					}
+				}
+			}
+		}
+		for (final Connection connection : currentDiagram.getConnections()) {
+			if (!isCurrentRelationStyle(connection.getGraphicsAlgorithm())) return true;
+			for (final ConnectionDecorator decorator : connection.getConnectionDecorators()) {
+				if (!isCurrentRelationStyle(decorator.getGraphicsAlgorithm())) return true;
+			}
+		}
+		return false;
+	}
+
+	private boolean isCurrentRelationStyle(final GraphicsAlgorithm graphicsAlgorithm) {
+		if (graphicsAlgorithm instanceof Text) {
+			return matches(graphicsAlgorithm.getForeground(), ColorDisplay.RELATION_TEXT_FOREGROUND);
+		}
+		if (graphicsAlgorithm instanceof Polyline) {
+			return graphicsAlgorithm.getLineWidth() == 1
+					&& matches(graphicsAlgorithm.getForeground(), ColorDisplay.RELATION_FOREGROUND);
+		}
+		return true;
+	}
+
+	private boolean matches(final org.eclipse.graphiti.mm.algorithms.styles.Color actual,
+			final IColorConstant expected) {
+		return actual != null && actual.getRed() == expected.getRed() && actual.getGreen() == expected.getGreen()
+				&& actual.getBlue() == expected.getBlue();
+	}
+
+	private boolean matches(final org.eclipse.graphiti.mm.algorithms.styles.Color actual,
+			final List<Integer> expected) {
+		return actual != null && actual.getRed() == expected.get(0) && actual.getGreen() == expected.get(1)
+				&& actual.getBlue() == expected.get(2);
+	}
+
+	private IColorConstant nodeOutlineColor(final boolean error) {
+		return error ? ColorDisplay.CLASS_FOREGROUND_ERROR : ColorDisplay.CLASS_FOREGROUND_DEFAULT;
+	}
+
+	private void updateDiagramAppearance(final Diagram currentDiagram) {
+		currentDiagram.setGridUnit(0);
+		currentDiagram.setVerticalGridUnit(0);
+		currentDiagram.setSnapToGrid(false);
+		final IGaService gaService = Graphiti.getGaService();
+		for (final Shape shape : currentDiagram.getChildren()) {
+			final Object businessObject =
+					getDiagramTypeProvider().getFeatureProvider().getBusinessObjectForPictogramElement(shape);
+			if (!(businessObject instanceof EGamaObject) || shape.getGraphicsAlgorithm() == null) continue;
+			final EGamaObject gamaObject = (EGamaObject) businessObject;
+			ColorDisplay.updateLegacyNodeColor(gamaObject.getColorPicto());
+			final List<Integer> color = gamaObject.getColorPicto();
+			final boolean error = Boolean.TRUE.equals(gamaObject.getHasError());
+			GraphicsAlgorithm graphicsAlgorithm = shape.getGraphicsAlgorithm();
+			if (!(graphicsAlgorithm instanceof RoundedRectangle)) {
+				final int x = graphicsAlgorithm.getX();
+				final int y = graphicsAlgorithm.getY();
+				final int width = graphicsAlgorithm.getWidth();
+				final int height = graphicsAlgorithm.getHeight();
+				graphicsAlgorithm = gaService.createRoundedRectangle(shape, 12, 12);
+				gaService.setLocationAndSize(graphicsAlgorithm, x, y, width, height);
+			}
+			final IColorConstant outlineColor = nodeOutlineColor(error);
+			graphicsAlgorithm.setForeground(gaService.manageColor(currentDiagram, outlineColor.getRed(),
+					outlineColor.getGreen(), outlineColor.getBlue()));
+			graphicsAlgorithm.setBackground(gaService.manageColor(currentDiagram, color.get(0), color.get(1),
+					color.get(2)));
+			graphicsAlgorithm.setLineWidth(error ? 2 : 1);
+			if (shape instanceof ContainerShape) {
+				LayoutCommonFeature.layout((ContainerShape) shape, currentDiagram, gamaObject, false);
+			}
+		}
+		for (final Connection connection : currentDiagram.getConnections()) {
+			updateRelationGraphics(gaService, currentDiagram, connection.getGraphicsAlgorithm());
+			for (final ConnectionDecorator decorator : connection.getConnectionDecorators()) {
+				updateRelationGraphics(gaService, currentDiagram, decorator.getGraphicsAlgorithm());
+			}
+		}
+	}
+
+	private void updateRelationGraphics(final IGaService gaService, final Diagram diagram,
+			final GraphicsAlgorithm graphicsAlgorithm) {
+		if (graphicsAlgorithm instanceof Text) {
+			final IColorConstant color = ColorDisplay.RELATION_TEXT_FOREGROUND;
+			graphicsAlgorithm.setForeground(gaService.manageColor(diagram, color.getRed(), color.getGreen(),
+					color.getBlue()));
+		} else if (graphicsAlgorithm instanceof Polyline) {
+			final IColorConstant color = ColorDisplay.RELATION_FOREGROUND;
+			graphicsAlgorithm.setForeground(gaService.manageColor(diagram, color.getRed(), color.getGreen(),
+					color.getBlue()));
+			graphicsAlgorithm.setLineWidth(1);
+		}
+	}
 
 	/**
 	 * Validation ended.
@@ -422,6 +569,7 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 	@Override
 	public void initializeGraphicalViewer() {
 		super.initializeGraphicalViewer();
+		updateAppearanceIfNeeded();
 
 		initGamlResource();
 		if (getDiagram() != null) {

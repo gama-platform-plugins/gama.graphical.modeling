@@ -136,6 +136,9 @@ public class NewFileWizard extends Wizard implements INewWizard {
 	private void createDiagramEditor(final IFile file, final String diagramName, final IProgressMonitor monitor) {
 		// Create the diagram
 		final Diagram diagram = Graphiti.getPeCreateService().createDiagram("gamaDiagram", diagramName, true);
+		diagram.setGridUnit(0);
+		diagram.setVerticalGridUnit(0);
+		diagram.setSnapToGrid(false);
 		
 		URI uri = URI.createPlatformResourceURI(file.getFullPath().toString(), true);
 		

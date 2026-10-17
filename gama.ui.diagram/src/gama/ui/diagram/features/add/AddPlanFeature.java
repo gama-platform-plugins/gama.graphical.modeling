@@ -17,7 +17,8 @@ public class AddPlanFeature extends AbstractAddShapeFeature {
 	public static final int INIT_WIDTH = 150;
 	public static final int INIT_HEIGHT = 50;
 
-	private static final List<Integer> CLASS_BACKGROUND = Arrays.asList(230, 190, 12);
+	private static final List<Integer> CLASS_BACKGROUND = ColorDisplay.NODE_GREEN;
+	private static final List<Integer> LEGACY_BACKGROUND = List.of(230, 190, 12);
 
 	public AddPlanFeature(final IFeatureProvider fp) {
 		super(fp);
@@ -48,18 +49,16 @@ public class AddPlanFeature extends AbstractAddShapeFeature {
 
 		{
 			// create and set graphics algorithm
-			Ellipse ellipse = gaService.createEllipse(containerShape);
-			ellipse.setForeground(manageColor(error ? ColorDisplay.CLASS_FOREGROUND_ERROR
-				: ColorDisplay.CLASS_FOREGROUND_OK));
-			if ( addedClass.getColorPicto().isEmpty() ) {
-				addedClass.getColorPicto().addAll(CLASS_BACKGROUND);
-			}
+			RoundedRectangle roundedRectangle = gaService.createRoundedRectangle(containerShape, 12, 12);
+			roundedRectangle.setForeground(manageColor(error ? ColorDisplay.CLASS_FOREGROUND_ERROR
+				: ColorDisplay.CLASS_FOREGROUND_DEFAULT));
 			List<Integer> currentColor = addedClass.getColorPicto();
+			ColorDisplay.applyDefaultColor(currentColor, LEGACY_BACKGROUND, CLASS_BACKGROUND);
 			Color color =
 				gaService.manageColor(getDiagram(), currentColor.get(0), currentColor.get(1), currentColor.get(2));
-			ellipse.setBackground(color);
-			ellipse.setLineWidth(error ? 4 : 2);
-			gaService.setLocationAndSize(ellipse, context.getX(), context.getY(), width, height);
+			roundedRectangle.setBackground(color);
+			roundedRectangle.setLineWidth(error ? 2 : 1);
+			gaService.setLocationAndSize(roundedRectangle, context.getX(), context.getY(), width, height);
 
 			if ( addedClass.eResource() == null ) {
 				getDiagram().eResource().getContents().add(addedClass);
@@ -75,9 +74,9 @@ public class AddPlanFeature extends AbstractAddShapeFeature {
 
 			// create and set text graphics algorithm
 			Text text = gaService.createDefaultText(getDiagram(), shape, addedClass.getName());
-			text.setForeground(manageColor(ColorDisplay.CLASS_TEXT_FOREGROUND));
+			text.setForeground(manageColor(ColorDisplay.nodeTextColor(addedClass.getColorPicto())));
 			text.setHorizontalAlignment(Orientation.ALIGNMENT_CENTER);
-			text.setFont(gaService.manageFont(getDiagram(), "Arial", 12, false, false));
+			text.setFont(gaService.manageFont(getDiagram(), "Arial", 14, false, true));
 			// text.getFont().setBold(true);
 			gaService.setLocationAndSize(text, 0, 0, width, height);
 

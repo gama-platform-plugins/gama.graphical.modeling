@@ -12,7 +12,6 @@ import org.eclipse.graphiti.mm.pictograms.PictogramElement;
 import org.eclipse.graphiti.services.Graphiti;
 import org.eclipse.graphiti.services.IGaService;
 import org.eclipse.graphiti.services.IPeCreateService;
-import org.eclipse.graphiti.util.IColorConstant;
 
 import gama.ui.diagram.metamodel.EActionLink;
 
@@ -36,8 +35,8 @@ public class AddActionLinkFeature extends AbstractAddFeature {
  
         IGaService gaService = Graphiti.getGaService();
         Polyline polyline = gaService.createPolyline(connection);
-        polyline.setLineWidth(3);
-        polyline.setForeground(manageColor(IColorConstant.LIGHT_ORANGE));
+        polyline.setLineWidth(1);
+        polyline.setForeground(manageColor(ColorDisplay.RELATION_FOREGROUND));
  
         // create link and wire it
         link(connection, addedEReference);
@@ -48,7 +47,7 @@ public class AddActionLinkFeature extends AbstractAddFeature {
             0.5, true);
         Text text = gaService.createText(textDecorator);
         		//createDefaultText(textDecorator);
-        text.setForeground(manageColor(IColorConstant.BLACK));
+        text.setForeground(manageColor(ColorDisplay.RELATION_TEXT_FOREGROUND));
         gaService.setLocation(text, 10, 0);
         text.setValue("has the action");
  

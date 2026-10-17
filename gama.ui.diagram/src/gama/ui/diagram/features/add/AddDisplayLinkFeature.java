@@ -22,7 +22,6 @@ import org.eclipse.graphiti.mm.pictograms.PictogramElement;
 import org.eclipse.graphiti.services.Graphiti;
 import org.eclipse.graphiti.services.IGaService;
 import org.eclipse.graphiti.services.IPeCreateService;
-import org.eclipse.graphiti.util.IColorConstant;
 
 import gama.ui.diagram.metamodel.EDisplayLink;
 
@@ -56,7 +55,7 @@ public class AddDisplayLinkFeature extends AbstractAddFeature {
 		Polyline polyline = gaService.createPolyline(connection);
 
 		polyline.setLineWidth(1);
-		polyline.setForeground(manageColor(IColorConstant.DARK_GRAY));
+		polyline.setForeground(manageColor(ColorDisplay.RELATION_FOREGROUND));
 
 		// create link and wire it
 		link(connection, addedEReference);
@@ -65,7 +64,7 @@ public class AddDisplayLinkFeature extends AbstractAddFeature {
 		ConnectionDecorator textDecorator = peCreateService.createConnectionDecorator(connection, true, 0.5, true);
 		Text text = gaService.createText(textDecorator);
 		// createDefaultText(textDecorator);
-		text.setForeground(manageColor(IColorConstant.BLACK));
+		text.setForeground(manageColor(ColorDisplay.RELATION_TEXT_FOREGROUND));
 		gaService.setLocation(text, 10, 0);
 		text.setValue("has display");
 
