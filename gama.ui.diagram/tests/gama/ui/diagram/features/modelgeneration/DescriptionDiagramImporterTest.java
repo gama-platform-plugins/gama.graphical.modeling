@@ -478,6 +478,17 @@ public final class DescriptionDiagramImporterTest {
 					init { do calculate(); }
 					action calculate() { write "worker"; }
 					reflex step { do calculate(); }
+					float t;
+					float S <- 10.0;
+					float I <- 1.0;
+					float R <- 0.0;
+					equation SIR {
+						// Keep the independent time variable and all differential equations.
+						diff(S, t) = (-S * I);
+						diff(I, t) = (S * I) - I;
+						diff(R, t) = I;
+					}
+					reflex solving { solve SIR method: "rk4" step_size: 0.01; }
 				}
 				experiment "multi word experiment" type: gui {
 					parameter "Number of Susceptible" var: rate;
@@ -500,6 +511,13 @@ public final class DescriptionDiagramImporterTest {
 		check(worker.getFacets().get(0).getValue().equals("(2   * 3)"), "Facet uses compiled expression");
 		check(worker.getActionLinks().get(0).getAction().getGamlCode().contains("write \"worker\";"),
 				"Raw action body lost");
+		final var equations = worker.getEquationLinks().get(0).getEquation();
+		check(equations.getGamlCode().contains("diff(S, t) = (-S * I);")
+				&& equations.getGamlCode().contains("diff(I, t) = (S * I) - I;")
+				&& equations.getGamlCode().contains("diff(R, t) = I;")
+				&& equations.getGamlCode().contains("// Keep the independent"), "Equation AST body lost");
+		check(EcoreUtil.copy(equations).getGamlCode().equals(equations.getGamlCode()),
+				"Equation body lost during preview copying");
 		final String generated = "model original\n" + ModelGenerator.defineSpecies(world, 0, null)
 				+ ModelGenerator.defineSpecies(worker, 0, null);
 		for (final var error : parser.parse(new StringReader(generated)).getSyntaxErrors()) {

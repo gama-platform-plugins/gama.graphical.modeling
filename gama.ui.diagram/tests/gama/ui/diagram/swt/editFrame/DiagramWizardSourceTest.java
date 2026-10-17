@@ -37,9 +37,11 @@ public final class DiagramWizardSourceTest {
 		final Path input = Path.of(args[sourceMode ? 1 : 0]);
 		final int outputIndex = sourceMode ? 2 : 1;
 		final var resource = new XMIResourceImpl(URI.createFileURI(input.toAbsolutePath().toString()));
+		java.util.List<String> expectedEquations = null;
 		Diagram diagram;
 		if (sourceMode) {
 			final String source = Files.readString(input);
+			expectedEquations = equations(parser, source);
 			final var model = DescriptionDiagramImporterTest.importSource(parser, source);
 			diagram = PictogramsFactory.eINSTANCE.createDiagram();
 			diagram.setName(model.getName());
@@ -88,6 +90,9 @@ public final class DiagramWizardSourceTest {
 			if (!source.equals(original)) {
 				throw new AssertionError(species.getName() + " unchanged preview lost stored source");
 			}
+			if (expectedEquations != null && !expectedEquations.equals(equations(parser, source))) {
+				throw new AssertionError(species.getName() + " preview lost or changed source differential equations");
+			}
 			final var parsed = parser.parse(new StringReader(source));
 			final var errors = new StringBuilder();
 			for (final var error : parsed.getSyntaxErrors()) {
@@ -101,5 +106,18 @@ public final class DiagramWizardSourceTest {
 		if (previews == 0) throw new AssertionError("No species/world/grid previews exercised");
 		System.out.println("PASS: " + previews + " unchanged wizard previews parse after "
 				+ (sourceMode ? "source-backed import and XMI save/reload" : "loading saved diagram"));
+	}
+
+	private static java.util.List<String> equations(final IParser parser, final String source) {
+		final var assignments = new java.util.ArrayList<String>();
+		final var root = parser.parse(new StringReader(source)).getRootASTElement();
+		for (final var iterator = root.eAllContents(); iterator.hasNext();) {
+			if (!(iterator.next() instanceof gaml.compiler.gaml.S_Equations system)) continue;
+			for (final var equation : system.getEquations()) {
+				assignments.add(org.eclipse.xtext.nodemodel.util.NodeModelUtils.getTokenText(
+						org.eclipse.xtext.nodemodel.util.NodeModelUtils.findActualNodeFor(equation)));
+			}
+		}
+		return assignments.stream().sorted().toList();
 	}
 }

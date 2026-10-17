@@ -14,6 +14,10 @@ serializer remains a fallback for descriptions without source nodes.
 Only explicitly declared facets are copied from source-backed declarations.
 Compiler-injected defaults such as experiment/display `title` labels must not be
 written back as unquoted GAML expressions.
+Equation systems use a dedicated AST assignment list rather than a normal
+statement block. Their source bodies must still be imported in full, including
+each `diff(variable, time)` declaration; an empty generated equation block can
+parse successfully but fail when the ODE solver first runs.
 
 Parameters and monitors are contained in the snapshot's objects list because their experiment lists are non-containment references. They are edited through the experiment, not rendered as separate diagram nodes. Save/reload checks cover both parameters and GUI/batch monitors.
 
@@ -122,6 +126,8 @@ description-compiler or native dialog test. Both modes require the unchanged
 preview to retain exactly the generated model's bodies and facets. An optional
 last argument names an existing output directory for exact preview dumps. Inputs
 are read-only. The SIR (Switch) library model exercises all three wizard kinds.
+Source mode also compares every differential equation against the original
+source after XMI save/reload and every preview copy, not just parser success.
 
 Diagrams saved with the broken serializer already contain corrupted code, which
 cannot safely be reconstructed from the `.gadl` alone. After rebuilding the

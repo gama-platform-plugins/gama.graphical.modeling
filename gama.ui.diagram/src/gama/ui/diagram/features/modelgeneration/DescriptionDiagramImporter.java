@@ -51,6 +51,7 @@ import gama.ui.diagram.metamodel.EWorldAgent;
 import gama.ui.diagram.metamodel.GamaFactory;
 import gaml.compiler.gaml.Block;
 import gaml.compiler.gaml.FacetsAndBlock;
+import gaml.compiler.gaml.S_Equations;
 
 /**
  * Copies declarations into the editable diagram model without compiling executable GAMA symbols.
@@ -431,8 +432,9 @@ public final class DescriptionDiagramImporter {
 		if (!(declaration instanceof FacetsAndBlock statement)
 				|| NodeModelUtils.findActualNodeFor(declaration) == null) return null;
 		final Block block = statement.getBlock();
-		if (block == null) return "";
-		final var node = NodeModelUtils.findActualNodeFor(block);
+		// Equations use their own assignment list, not the normal statement Block.
+		if (block == null && !(declaration instanceof S_Equations)) return "";
+		final var node = NodeModelUtils.findActualNodeFor(block == null ? declaration : block);
 		if (node == null) return null;
 		int start = -1;
 		int end = -1;
