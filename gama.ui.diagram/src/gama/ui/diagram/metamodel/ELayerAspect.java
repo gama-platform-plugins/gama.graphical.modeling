@@ -58,7 +58,7 @@ public interface ELayerAspect extends EGamaObject {
 	 * @return the value of the '<em>Gaml Code</em>' attribute.
 	 * @see #setGamlCode(String)
 	 * @see gama.ui.diagram.metamodel.GamaPackage#getELayerAspect_GamlCode()
-	 * @model derived="true"
+	 * @model
 	 * @generated
 	 */
 	String getGamlCode();
@@ -448,7 +448,7 @@ public interface ELayerAspect extends EGamaObject {
 	 * @return the value of the '<em>Shape Type</em>' attribute.
 	 * @see #setShapeType(String)
 	 * @see gama.ui.diagram.metamodel.GamaPackage#getELayerAspect_ShapeType()
-	 * @model derived="true"
+	 * @model
 	 * @generated
 	 */
 	String getShapeType();
@@ -474,7 +474,7 @@ public interface ELayerAspect extends EGamaObject {
 	 * @return the value of the '<em>Is Color Cst</em>' attribute.
 	 * @see #setIsColorCst(Boolean)
 	 * @see gama.ui.diagram.metamodel.GamaPackage#getELayerAspect_IsColorCst()
-	 * @model derived="true"
+	 * @model
 	 * @generated
 	 */
 	Boolean getIsColorCst();
@@ -500,7 +500,7 @@ public interface ELayerAspect extends EGamaObject {
 	 * @return the value of the '<em>Text Size</em>' attribute.
 	 * @see #setTextSize(String)
 	 * @see gama.ui.diagram.metamodel.GamaPackage#getELayerAspect_TextSize()
-	 * @model derived="true"
+	 * @model
 	 * @generated
 	 */
 	String getTextSize();
@@ -526,7 +526,7 @@ public interface ELayerAspect extends EGamaObject {
 	 * @return the value of the '<em>Image Size</em>' attribute.
 	 * @see #setImageSize(String)
 	 * @see gama.ui.diagram.metamodel.GamaPackage#getELayerAspect_ImageSize()
-	 * @model derived="true"
+	 * @model
 	 * @generated
 	 */
 	String getImageSize();

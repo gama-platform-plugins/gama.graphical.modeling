@@ -33,7 +33,7 @@ public interface EEquation extends EGamaObject {
 	 * @return the value of the '<em>Gaml Code</em>' attribute.
 	 * @see #setGamlCode(String)
 	 * @see gama.ui.diagram.metamodel.GamaPackage#getEEquation_GamlCode()
-	 * @model derived="true"
+	 * @model
 	 * @generated
 	 */
 	String getGamlCode();

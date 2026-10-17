@@ -52,6 +52,7 @@ public class AddPlanLinkFeature extends AbstractAddFeature {
         gaService.setLocation(text, 10, 0);
         text.setValue("has the plan");
  
+        RelationStyle.apply(getDiagram(), connection);
         return connection;
     }
  

@@ -52,6 +52,7 @@ public class AddTaskLinkFeature extends AbstractAddFeature {
         gaService.setLocation(text, 10, 0);
         text.setValue("has the task");
  
+        RelationStyle.apply(getDiagram(), connection);
         return connection;
     }
  

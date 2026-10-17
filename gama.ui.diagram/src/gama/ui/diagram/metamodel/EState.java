@@ -33,7 +33,7 @@ public interface EState extends EGamaObject {
 	 * @return the value of the '<em>Gaml Code</em>' attribute.
 	 * @see #setGamlCode(String)
 	 * @see gama.ui.diagram.metamodel.GamaPackage#getEState_GamlCode()
-	 * @model derived="true"
+	 * @model
 	 * @generated
 	 */
 	String getGamlCode();

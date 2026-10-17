@@ -12,12 +12,8 @@ package gama.ui.diagram.editor;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.emf.common.util.URI;
@@ -29,11 +25,8 @@ import org.eclipse.graphiti.internal.util.T;
 import org.eclipse.graphiti.mm.algorithms.GraphicsAlgorithm;
 import org.eclipse.graphiti.mm.algorithms.AbstractText;
 import org.eclipse.graphiti.mm.algorithms.MultiText;
-import org.eclipse.graphiti.mm.algorithms.Polyline;
 import org.eclipse.graphiti.mm.algorithms.RoundedRectangle;
-import org.eclipse.graphiti.mm.algorithms.Text;
 import org.eclipse.graphiti.mm.pictograms.Connection;
-import org.eclipse.graphiti.mm.pictograms.ConnectionDecorator;
 import org.eclipse.graphiti.mm.pictograms.ContainerShape;
 import org.eclipse.graphiti.mm.pictograms.Diagram;
 import org.eclipse.graphiti.mm.pictograms.Shape;
@@ -43,17 +36,10 @@ import org.eclipse.graphiti.ui.editor.DiagramBehavior;
 import org.eclipse.graphiti.ui.editor.DiagramEditor;
 import org.eclipse.graphiti.util.IColorConstant;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.CLabel;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.graphics.Color;
-import org.eclipse.swt.graphics.Font;
-import org.eclipse.swt.graphics.FontData;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import gama.api.kernel.species.IModelSpecies;
@@ -65,8 +51,10 @@ import gama.api.compilation.GamlCompilationError;
 import gama.api.compilation.descriptions.IDescription;
 import gama.api.types.map.GamaMapFactory;
 import gama.ui.diagram.features.add.ColorDisplay;
+import gama.ui.diagram.features.add.RelationStyle;
 import gama.ui.diagram.features.layout.LayoutCommonFeature;
 import gama.ui.diagram.features.modelgeneration.ModelGenerator;
+import gama.ui.diagram.swt.image.GamaImageProvider;
 import gama.ui.diagram.metamodel.EAction;
 import gama.ui.diagram.metamodel.EAspect;
 import gama.ui.diagram.metamodel.EDisplay;
@@ -80,8 +68,10 @@ import gama.ui.diagram.metamodel.EParameter;
 import gama.ui.diagram.metamodel.EReflex;
 import gama.ui.diagram.metamodel.ESpecies;
 import gama.ui.diagram.metamodel.EVariable;
-import gama.ui.shared.resources.IGamaColors;
+import gama.ui.shared.views.toolbar.GamaToolbar2;
 import gama.api.compilation.descriptions.IModelDescription;
+import gaml.compiler.ui.editor.GamlEditorState;
+import gaml.compiler.ui.editor.toolbar.ExperimentToolbar;
 import gaml.compiler.gaml.Model;
 import gaml.compiler.gaml.Statement;
 import gaml.compiler.gaml.impl.ArgumentDefinitionImpl;
@@ -97,7 +87,6 @@ import gaml.compiler.gaml.impl.StatementImpl;
 import gaml.compiler.gaml.impl.VariableRefImpl;
 // speciesOrGridDisplayStatementImpl was removed/renamed in the compiler rework; use StatementImpl instead
 import gaml.compiler.resource.GamlResource;
-import gaml.compiler.resource.GamlResourceServices;
 import gaml.compiler.validation.IGamlBuilderListener;
 import gama.api.compilation.validation.IValidationContext;
 
@@ -106,38 +95,12 @@ import gama.api.compilation.validation.IValidationContext;
  */
 public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderListener {
 
-	/** The Constant INITIAL_BUTTONS. */
-	private static final int INITIAL_BUTTONS = 20;
-
-	/** The Constant COLOR_TEXT. */
-	public static final Color COLOR_TEXT = Display.getDefault().getSystemColor(SWT.COLOR_BLACK);
-
-	/** The label font. */
-	private static Font labelFont;
-
 	/** The resource. */
 	GamlResource resource;
 
-	/** The abbreviations. */
-	List<String> abbreviations = new ArrayList<>();
-
-	/** The complete names of experiments. */
-	List<String> completeNamesOfExperiments = new ArrayList<>();
-
-	/** The inited. */
-	boolean wasOK = true, inited = false;
-
-	/** The indicator. */
-	Composite toolbar, parent, indicator;
-
-	/** The buttons. */
-	Button[] buttons = new Button[INITIAL_BUTTONS];
-
-	/** The status. */
-	CLabel status;
-
-	/** The menu. */
-	Button menu;
+	private boolean wasOK = true;
+	private ExperimentToolbar experimentToolbar;
+	private GamaToolbar2 toolbar;
 
 	/** The diagram. */
 	Diagram diagram;
@@ -161,12 +124,6 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 
 	/** The syntax errors loc. */
 	Map<List<String>, Map<String, String>> syntaxErrorsLoc = GamaMapFactory.create();
-
-	static {
-		final FontData fd = Display.getDefault().getSystemFont().getFontData()[0];
-		fd.setStyle(SWT.BOLD);
-		labelFont = new Font(Display.getDefault(), fd);
-	}
 
 	/**
 	 * Instantiates a new gama diagram editor.
@@ -205,6 +162,13 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 					|| !gamaObject.getColorPicto().equals(color)) return true;
 			if (shape instanceof ContainerShape) {
 				for (final Shape child : ((ContainerShape) shape).getChildren()) {
+					if (child.getGraphicsAlgorithm() instanceof org.eclipse.graphiti.mm.algorithms.Image) {
+						if (!LayoutCommonFeature.hasCurrentIconSize(
+								(org.eclipse.graphiti.mm.algorithms.Image) child.getGraphicsAlgorithm())) return true;
+						final String expected = GamaImageProvider.nodeImageId(gamaObject);
+						if (expected != null && !expected.equals(
+								((org.eclipse.graphiti.mm.algorithms.Image) child.getGraphicsAlgorithm()).getId())) return true;
+					}
 					if (child.getGraphicsAlgorithm() instanceof AbstractText) {
 						final AbstractText text = (AbstractText) child.getGraphicsAlgorithm();
 						final boolean title = LayoutCommonFeature.isTitle(text);
@@ -217,23 +181,9 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 			}
 		}
 		for (final Connection connection : currentDiagram.getConnections()) {
-			if (!isCurrentRelationStyle(connection.getGraphicsAlgorithm())) return true;
-			for (final ConnectionDecorator decorator : connection.getConnectionDecorators()) {
-				if (!isCurrentRelationStyle(decorator.getGraphicsAlgorithm())) return true;
-			}
+			if (!RelationStyle.isCurrent(connection)) return true;
 		}
 		return false;
-	}
-
-	private boolean isCurrentRelationStyle(final GraphicsAlgorithm graphicsAlgorithm) {
-		if (graphicsAlgorithm instanceof Text) {
-			return matches(graphicsAlgorithm.getForeground(), ColorDisplay.RELATION_TEXT_FOREGROUND);
-		}
-		if (graphicsAlgorithm instanceof Polyline) {
-			return graphicsAlgorithm.getLineWidth() == 1
-					&& matches(graphicsAlgorithm.getForeground(), ColorDisplay.RELATION_FOREGROUND);
-		}
-		return true;
 	}
 
 	private boolean matches(final org.eclipse.graphiti.mm.algorithms.styles.Color actual,
@@ -281,28 +231,19 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 					color.get(2)));
 			graphicsAlgorithm.setLineWidth(error ? 2 : 1);
 			if (shape instanceof ContainerShape) {
+				for (final Shape child : ((ContainerShape) shape).getChildren()) {
+					if (child.getGraphicsAlgorithm() instanceof org.eclipse.graphiti.mm.algorithms.Image) {
+						final String imageId = GamaImageProvider.nodeImageId(gamaObject);
+						if (imageId != null) {
+							((org.eclipse.graphiti.mm.algorithms.Image) child.getGraphicsAlgorithm()).setId(imageId);
+						}
+					}
+				}
 				LayoutCommonFeature.layout((ContainerShape) shape, currentDiagram, gamaObject, false);
 			}
 		}
 		for (final Connection connection : currentDiagram.getConnections()) {
-			updateRelationGraphics(gaService, currentDiagram, connection.getGraphicsAlgorithm());
-			for (final ConnectionDecorator decorator : connection.getConnectionDecorators()) {
-				updateRelationGraphics(gaService, currentDiagram, decorator.getGraphicsAlgorithm());
-			}
-		}
-	}
-
-	private void updateRelationGraphics(final IGaService gaService, final Diagram diagram,
-			final GraphicsAlgorithm graphicsAlgorithm) {
-		if (graphicsAlgorithm instanceof Text) {
-			final IColorConstant color = ColorDisplay.RELATION_TEXT_FOREGROUND;
-			graphicsAlgorithm.setForeground(gaService.manageColor(diagram, color.getRed(), color.getGreen(),
-					color.getBlue()));
-		} else if (graphicsAlgorithm instanceof Polyline) {
-			final IColorConstant color = ColorDisplay.RELATION_FOREGROUND;
-			graphicsAlgorithm.setForeground(gaService.manageColor(diagram, color.getRed(), color.getGreen(),
-					color.getBlue()));
-			graphicsAlgorithm.setLineWidth(1);
+			RelationStyle.apply(currentDiagram, connection);
 		}
 	}
 
@@ -319,132 +260,13 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 	@Override
 	public void validationEnded(final IModelDescription model, final Iterable<? extends IDescription> experiments,
 			final IValidationContext status) {
-		updateExperiments(experiments, status.hasErrors());
-		toRefresh = true;
-	}
-
-	/*
-	 * public void validationEnded(Set<String> experiments, boolean withErrors) {
-	 *
-	 * }
-	 */
-
-	/**
-	 * Update experiments.
-	 *
-	 * @param <T>
-	 *            the generic type
-	 * @param experiments
-	 *            the experiments
-	 * @param withErrors
-	 *            the with errors
-	 */
-	private <T extends IDescription> void updateExperiments(final Iterable<T> experiments, final boolean withErrors) {
-		if (withErrors && !wasOK) return;
-		final Set<String> oldNames = new LinkedHashSet<>(completeNamesOfExperiments);
-		if (inited && wasOK && !withErrors && oldNames.equals(experiments)) return;
-		final Collection<T> exps = new ArrayList<>();
-		for (final T desc : experiments) { exps.add(desc); }
-		inited = true;
-		wasOK = !withErrors;
-		completeNamesOfExperiments = exps.stream().map(IDescription::getName).collect(Collectors.toList());
-		buildAbbreviations();
-		updateToolbar(wasOK);
-	}
-
-	/**
-	 * Builds the abbreviations.
-	 */
-	private void buildAbbreviations() {
-		// Very simple method used here
-		final int size = completeNamesOfExperiments.size();
-		abbreviations.clear();
-		if (size > 6) {
-			// We remove "Experiment".
-			for (final String s : completeNamesOfExperiments) { abbreviations.add(s.replaceFirst("Experiment ", "")); }
-		} else if (size > 4) {
-			// We replace "Experiment" by "Exp."
-			for (final String s : completeNamesOfExperiments) {
-				abbreviations.add(s.replaceFirst("Experiment", "Exp."));
-			}
-		} else {
-			// We copy the names as it is
-			abbreviations.addAll(completeNamesOfExperiments);
-		}
-	}
-
-	/**
-	 * Update toolbar.
-	 *
-	 * @param ok
-	 *            the ok
-	 */
-	public void updateToolbar(final boolean ok) {
-
+		wasOK = model != null && status != null && !status.hasErrors();
+		final GamlEditorState snapshot = new GamlEditorState(model == null ? null : status,
+				experiments == null ? List.of() : experiments);
 		Display.getDefault().asyncExec(() -> {
-			if (toolbar == null || toolbar.isDisposed()) return;
-			for (final Button b : buttons) { if (b.isVisible()) { hideButton(b); } }
-			if (ok) {
-				final int size = abbreviations.size();
-				if (size == 0) {
-					setStatus("Model is functional, but no experiments have been defined.", ok);
-				} else {
-					setStatus(size == 1 ? "Run :" : "Run :", ok);
-				}
-				int i = 0;
-				for (final String e : abbreviations) { enableButton(i++, e); }
-			} else {
-				StringBuilder textError = new StringBuilder();
-				for (GamlCompilationError err : errors)
-					if (err != null) { textError.append(err.toString()).append("; "); }
-				setStatus("Error(s) detected: " + textError.toString(), ok);
-			}
-
-			toolbar.layout(true);
+			if (toolbar != null && !toolbar.isDisposed()) experimentToolbar.update(snapshot);
 		});
-
-	}
-
-	/**
-	 * Enable button.
-	 *
-	 * @param index
-	 *            the index
-	 * @param text
-	 *            the text
-	 */
-	private void enableButton(final int index, final String text) {
-		if (text == null) return;
-		((GridData) buttons[index].getLayoutData()).exclude = false;
-		buttons[index].setVisible(true);
-		buttons[index].setText(text);
-		buttons[index].pack();
-	}
-
-	/**
-	 * Hide button.
-	 *
-	 * @param b
-	 *            the b
-	 */
-	private void hideButton(final Button b) {
-		((GridData) b.getLayoutData()).exclude = true;
-		b.setVisible(false);
-	}
-
-	/**
-	 * Sets the status.
-	 *
-	 * @param text
-	 *            the text
-	 * @param ok
-	 *            the ok
-	 */
-	private void setStatus(final String text, final boolean ok) {
-		final Color c = ok ? abbreviations.size() == 0 ? IGamaColors.WARNING.inactive() : IGamaColors.OK.inactive()
-				: IGamaColors.ERROR.inactive();
-		indicator.setBackground(c);
-		status.setText(text);
+		toRefresh = true;
 	}
 
 	/**
@@ -454,87 +276,46 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 	 *            the parent
 	 */
 	public void createPartControlXP(final Composite parent) {
-		this.parent = parent;
-
-		GridLayout layout = new GridLayout(2, false);
+		final GridLayout layout = new GridLayout(1, false);
 		layout.horizontalSpacing = 0;
 		layout.verticalSpacing = 0;
 		layout.marginWidth = 0;
 		layout.marginHeight = 0;
 		parent.setLayout(layout);
 
-		toolbar = new Composite(parent, SWT.NONE);
-
-		GridData data = new GridData(SWT.FILL, SWT.FILL, true, false);
-		data.heightHint = 26;
-		data.horizontalIndent = 10;
-		toolbar.setLayoutData(data);
-		layout = new GridLayout(INITIAL_BUTTONS + 2, false);
-		layout.horizontalSpacing = 2;
-		layout.verticalSpacing = 0;
-		layout.marginWidth = 0;
-		layout.marginHeight = 0;
-		toolbar.setLayout(layout);
-
-		final Composite others = new Composite(parent, SWT.None);
-		data = new GridData(SWT.RIGHT, SWT.FILL, false, false);
-		data.heightHint = 26;
-		others.setLayoutData(data);
-		layout = new GridLayout(2, false);
-		others.setLayout(layout);
-
-		indicator = new Composite(parent, SWT.None);
-		data = new GridData(SWT.FILL, SWT.FILL, true, false);
-		data.horizontalSpan = 2;
-		data.heightHint = 8;
-		indicator.setLayoutData(data);
-		final FillLayout layout2 = new FillLayout();
-		layout2.marginWidth = 12;
-		layout2.marginHeight = 0;
-		indicator.setLayout(layout2);
-
-		status = new CLabel(toolbar, SWT.NONE);
-		status.setFont(labelFont);
-		data = new GridData(SWT.FILL, SWT.CENTER, false, false);
-		data.minimumHeight = SWT.DEFAULT;
-		status.setLayoutData(data);
-		status.setForeground(COLOR_TEXT);
-
-		for (int i = 0; i < INITIAL_BUTTONS; i++) {
-			buttons[i] = new Button(toolbar, SWT.PUSH);
-			data = new GridData(SWT.LEFT, SWT.CENTER, false, false);
-			buttons[i].setLayoutData(data);
-			buttons[i].setText("Experiment " + i);
-			buttons[i].addSelectionListener(listener);
-			hideButton(buttons[i]);
-		}
+		toolbar = new GamaToolbar2(parent, SWT.NONE);
+		toolbar.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+		experimentToolbar = new ExperimentToolbar(toolbar, this::launchExperiment,
+				() -> ModelGenerator.modelValidation(getDiagramTypeProvider().getFeatureProvider(), getDiagram()),
+				uri -> GAMA.getGui().getModelsManager().editModel(uri));
 
 		// Asking the editor to fill the rest
 		final Composite parent2 = new Composite(parent, SWT.NONE);
-		data = new GridData(SWT.FILL, SWT.FILL, true, true);
-		data.horizontalSpan = 2;
-		parent2.setLayoutData(data);
+		parent2.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 		parent2.setLayout(new FillLayout());
 
 		super.createPartControl(parent2);
 
 	}
 
-	/** The listener. */
-	private final SelectionListener listener = new SelectionAdapter() {
-
-		@Override
-		public void widgetSelected(final SelectionEvent evt) {
-			diagram = getDiagram();
-			final String xp = ((Button) evt.getSource()).getText();
-			if (diagram != null && !diagram.getChildren().isEmpty()) {
-				final IModelSpecies model =
-						ModelGenerator.modelGeneration(getDiagramTypeProvider().getFeatureProvider(), diagram);
-				if (model != null) { GAMA.runGuiExperiment(xp, model); }
-			}
-
+	private void launchExperiment(final String name) {
+		final Diagram currentDiagram = getDiagram();
+		final List<GamlCompilationError> validationErrors =
+				ModelGenerator.modelValidation(getDiagramTypeProvider().getFeatureProvider(), currentDiagram);
+		if (validationErrors == null || !wasOK) {
+			MessageDialog.openError(getSite().getShell(), "Cannot run experiment",
+					"Fix the model's validation errors before running an experiment.");
+			return;
 		}
-	};
+		final IModelSpecies model =
+				ModelGenerator.modelGeneration(getDiagramTypeProvider().getFeatureProvider(), currentDiagram);
+		if (model == null) {
+			MessageDialog.openError(getSite().getShell(), "Cannot run experiment",
+					"The diagram could not be compiled. Check the model's validation errors.");
+			return;
+		}
+		GAMA.runGuiExperiment(name, model);
+	}
 
 	@Override
 	public void doSave(final IProgressMonitor monitor) {
@@ -569,6 +350,7 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 	@Override
 	public void initializeGraphicalViewer() {
 		super.initializeGraphicalViewer();
+		((GamaDiagramBehavior) getDiagramBehavior()).updateConnectionLayers();
 		updateAppearanceIfNeeded();
 
 		initGamlResource();
@@ -599,7 +381,6 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 	 */
 	public void setResource(final GamlResource resource) {
 		this.resource = resource;
-		if (resource != null) { GamlResourceServices.addResourceListener(resource.getURI(), GamaDiagramEditor.this); }
 
 	}
 

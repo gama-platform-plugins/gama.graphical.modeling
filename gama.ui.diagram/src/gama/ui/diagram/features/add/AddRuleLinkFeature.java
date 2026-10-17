@@ -52,6 +52,7 @@ public class AddRuleLinkFeature extends AbstractAddFeature {
         gaService.setLocation(text, 10, 0);
         text.setValue("has the rule");
  
+        RelationStyle.apply(getDiagram(), connection);
         return connection;
     }
  

@@ -51,6 +51,7 @@ public class AddEExperimentLinkFeature extends AbstractAddFeature {
         gaService.setLocation(text, 10, 0);
         text.setValue("possible experiment");
  
+        RelationStyle.apply(getDiagram(), connection);
         return connection;
     }
  

@@ -51,7 +51,7 @@ public interface ELayer extends EGamaObject {
 	 * @return the value of the '<em>Gaml Code</em>' attribute.
 	 * @see #setGamlCode(String)
 	 * @see gama.ui.diagram.metamodel.GamaPackage#getELayer_GamlCode()
-	 * @model derived="true"
+	 * @model
 	 * @generated
 	 */
 	String getGamlCode();
@@ -311,7 +311,7 @@ public interface ELayer extends EGamaObject {
 	 * @return the value of the '<em>Is Color Cst</em>' attribute.
 	 * @see #setIsColorCst(Boolean)
 	 * @see gama.ui.diagram.metamodel.GamaPackage#getELayer_IsColorCst()
-	 * @model derived="true"
+	 * @model
 	 * @generated
 	 */
 	Boolean getIsColorCst();

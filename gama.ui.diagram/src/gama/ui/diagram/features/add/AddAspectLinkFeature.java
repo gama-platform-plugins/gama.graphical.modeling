@@ -52,6 +52,7 @@ public class AddAspectLinkFeature extends AbstractAddFeature {
         gaService.setLocation(text, 10, 0);
         text.setValue("has the aspect");
  
+        RelationStyle.apply(getDiagram(), connection);
         return connection;
     }
  

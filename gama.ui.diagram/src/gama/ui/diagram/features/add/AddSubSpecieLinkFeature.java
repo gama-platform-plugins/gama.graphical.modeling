@@ -58,6 +58,7 @@ public class AddSubSpecieLinkFeature extends AbstractAddFeature {
               .createConnectionDecorator(connection, false, 1.0, true);
         createArrow(cd);
  
+        RelationStyle.apply(getDiagram(), connection);
         return connection;
     }
  

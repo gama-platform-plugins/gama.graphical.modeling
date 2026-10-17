@@ -52,6 +52,7 @@ public class AddStateLinkFeature extends AbstractAddFeature {
         gaService.setLocation(text, 10, 0);
         text.setValue("has the state");
  
+        RelationStyle.apply(getDiagram(), connection);
         return connection;
     }
  

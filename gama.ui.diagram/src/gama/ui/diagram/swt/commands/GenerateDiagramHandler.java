@@ -36,15 +36,19 @@ import org.eclipse.graphiti.ui.internal.services.GraphitiUiInternal;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.PartInitException;
-import gama.api.kernel.species.IModelSpecies;
+import org.eclipse.jface.dialogs.MessageDialog;
 
 import gama.ui.diagram.FileService;
 import gama.ui.diagram.editor.GamaDiagramEditor;
 import gama.ui.diagram.editor.GamaFeatureProvider;
+import gama.ui.diagram.features.modelgeneration.DescriptionDiagramImporter;
+import gama.ui.diagram.features.modelgeneration.DiagramModelDocumentation;
+import gaml.compiler.ui.wizards.species.ModelDocumentation;
+import gama.ui.diagram.metamodel.EGamaModel;
 import gama.ui.shared.utils.WorkbenchHelper;
 import gaml.compiler.ui.editor.GamlEditor;
 import gaml.compiler.ui.editor.IDiagramOpener;
-import gaml.compiler.validation.GamlModelBuilder;
+import gaml.compiler.resource.GamlResource;
 
 /**
  * The Class GenerateDiagramHandler.
@@ -70,9 +74,11 @@ public class GenerateDiagramHandler extends AbstractHandler implements IDiagramO
 	 * @param gamaModel
 	 *            the gama model
 	 */
-	private void createDiagramEditor(final IFile file, final String diagramName, final IModelSpecies gamaModel) {
+	private void createDiagramEditor(final IFile file, final String diagramName, final EGamaModel gamaModel,
+			final ModelDocumentation documentation) {
 		// Create the diagram
 		final Diagram diagram = Graphiti.getPeCreateService().createDiagram("gamaDiagram", diagramName, true);
+		DiagramModelDocumentation.write(diagram, documentation);
 
 		final URI uri = URI.createPlatformResourceURI(file.getFullPath().toString(), true);
 
@@ -86,7 +92,7 @@ public class GenerateDiagramHandler extends AbstractHandler implements IDiagramO
 				final IDiagramTypeProvider dtp = ((GamaDiagramEditor) ep).getDiagramTypeProvider();
 				final GamaFeatureProvider gfp = (GamaFeatureProvider) dtp.getFeatureProvider();
 				gfp.setTypeOfModel("custom");
-				gfp.setGamaModel(gamaModel);
+				gfp.setImportedModel(gamaModel);
 				gfp.init();
 				ep.doSave(null);
 
@@ -136,10 +142,27 @@ public class GenerateDiagramHandler extends AbstractHandler implements IDiagramO
 	 */
 	@Override
 	public void open(final GamlEditor editor) {
-		final IModelSpecies model = editor.getDocument()
-				.readOnly(state -> GamlModelBuilder.getInstance().compile(state.getURI(), null));
-		if (model == null) return;
-		final File file = new File(model.getProjectPath() + "/diagrams/" + model.getName() + ".gadl");
+		final ModelDocumentation[] documentation = { ModelDocumentation.EMPTY };
+		final EGamaModel model = editor.getDocument().readOnly(state -> {
+			documentation[0] = ModelDocumentation.read(editor.getDocument().get());
+			final GamlResource resource = (GamlResource) state;
+			if (resource.hasErrors()) return null;
+			final var description = resource.buildCompleteDescription();
+			if (description == null) return null;
+			try {
+				if (description.validate() == null || resource.getValidationContext().hasErrors()) return null;
+				return DescriptionDiagramImporter.importModel(description);
+			} finally {
+				description.dispose();
+			}
+		});
+		if (model == null) {
+			MessageDialog.openError(editor.getSite().getShell(), "Cannot generate diagram",
+					"Fix the model's validation errors before generating its diagram.");
+			return;
+		}
+		final File file = new File(editor.getResource().getProject().getLocation().toFile(),
+				"diagrams/" + model.getName() + ".gadl");
 		if (file.exists()) { file.delete(); }
 
 		final IResource resource = editor.getResource();
@@ -153,7 +176,7 @@ public class GenerateDiagramHandler extends AbstractHandler implements IDiagramO
 			}
 		}
 		final IFile fileP = container.getFile(new Path("diagrams/" + model.getName() + ".gadl"));
-		createDiagramEditor(fileP, model.getName(), model);
+		createDiagramEditor(fileP, model.getName(), model, documentation[0]);
 	}
 
 	/**

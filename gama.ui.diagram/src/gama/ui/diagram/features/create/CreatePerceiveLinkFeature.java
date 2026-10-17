@@ -113,7 +113,7 @@ public class CreatePerceiveLinkFeature extends AbstractCreateSpeciesComponentLin
 	
 	@Override
 	public String getCreateImageId() {
-		return GamaImageProvider.IMG_REFLEXLINK;
+		return GamaImageProvider.IMG_PERCEIPT;
 	}
 	public void execute(IContext context) {
 		super.execute(context);

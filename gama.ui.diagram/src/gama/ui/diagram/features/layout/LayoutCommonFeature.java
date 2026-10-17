@@ -25,11 +25,19 @@ import org.eclipse.graphiti.util.IColorConstant;
 import gama.ui.diagram.features.add.ColorDisplay;
 import gama.ui.diagram.metamodel.EGamaObject;
 import gama.ui.diagram.metamodel.ESpecies;
+import gama.ui.diagram.swt.image.GamaImageProvider;
 
 public class LayoutCommonFeature extends AbstractLayoutFeature {
 
 	private static final int PADDING = 12;
 	private static final int ICON_SPACE = 32;
+	public static final int ICON_SIZE = 24;
+
+	public static boolean hasCurrentIconSize(final Image image) {
+		return image.getWidth() == ICON_SIZE && image.getHeight() == ICON_SIZE
+				&& Boolean.TRUE.equals(image.getStretchH()) && Boolean.TRUE.equals(image.getStretchV())
+				&& Boolean.TRUE.equals(image.getProportional());
+	}
 
 	public LayoutCommonFeature(final IFeatureProvider fp) {
 		super(fp);
@@ -124,9 +132,18 @@ public class LayoutCommonFeature extends AbstractLayoutFeature {
 				line.setLineWidth(1);
 				child.setVisible(!body.isEmpty());
 			} else if (graphics instanceof Image) {
+				final Image image = (Image) graphics;
+				final String imageId = GamaImageProvider.nodeImageId(object);
+				if (imageId != null && !imageId.equals(image.getId())) {
+					image.setId(imageId);
+					changed = true;
+				}
+				changed |= !hasCurrentIconSize(image);
+				image.setStretchH(true);
+				image.setStretchV(true);
+				image.setProportional(true);
 				changed |= setBounds(ga, graphics, PADDING,
-						(body.isEmpty() ? height : headerHeight) / 2 - graphics.getHeight() / 2,
-						graphics.getWidth(), graphics.getHeight());
+						(body.isEmpty() ? height : headerHeight) / 2 - ICON_SIZE / 2, ICON_SIZE, ICON_SIZE);
 			}
 		}
 		return changed;

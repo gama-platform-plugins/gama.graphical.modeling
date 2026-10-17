@@ -11,31 +11,29 @@ import org.eclipse.graphiti.features.context.impl.AddContext;
 import org.eclipse.graphiti.features.context.impl.CreateContext;
 import org.eclipse.graphiti.mm.pictograms.Connection;
 import org.eclipse.graphiti.mm.pictograms.PictogramElement;
+import org.eclipse.jface.window.Window;
 
 import gama.ui.diagram.editor.GamaDiagramEditor;
 import gama.ui.diagram.features.ExampleUtil;
 import gama.ui.diagram.features.add.AddSpeciesFeature;
+import gama.ui.diagram.features.modelgeneration.ModelGenerator;
 import gama.ui.diagram.metamodel.ESpecies;
 import gama.ui.diagram.metamodel.ESubSpeciesLink;
 import gama.ui.diagram.swt.image.GamaImageProvider;
+import gama.ui.diagram.swt.editFrame.SpeciesWizardAdapter;
+import gaml.compiler.ui.wizards.species.SpeciesWizard;
 
 public class CreateSubSpeciesLinkFeature extends AbstractCreateSpeciesComponentLinkFeature {
 
-	 private static final String TITLE = "Create species";
-	  
-	 private static final String USER_QUESTION = "Enter new species name";
-	
    
 	public CreateSubSpeciesLinkFeature(IFeatureProvider fp) {
 		// provide name and description for the UI, e.g. the palette
 		super(fp, "is composed of a species", "Create a new species");
 	}
 
-	private ESpecies createESpecies(ICreateConnectionContext context,ESpecies source) {
-		String newSpeciesName = ExampleUtil.askString(TITLE, USER_QUESTION, "my_species");
-	    if (newSpeciesName == null || newSpeciesName.trim().length() == 0) {
-	    	return null;
-	    }  
+	private ESpecies createESpecies(ESpecies source) {
+		if (source == null) return null;
+		String newSpeciesName = "my_species";
 	    String initName = newSpeciesName;
 	    List<String> names = new ArrayList<String>();
 	    for (ESubSpeciesLink li : source.getMicroSpeciesLinks()){
@@ -50,15 +48,15 @@ public class CreateSubSpeciesLinkFeature extends AbstractCreateSpeciesComponentL
 	    ESpecies newSpecies = gama.ui.diagram.metamodel.GamaFactory.eINSTANCE.createESpecies();
 	    newSpecies.setError("");
 	    newSpecies.setHasError(false);
+		newSpecies.setName(newSpeciesName);
+		final var editor = ExampleUtil.getDiagramEditor(getFeatureProvider());
+		final var wizard = new SpeciesWizard(editor.getSite().getShell(), SpeciesWizardAdapter.snapshot(newSpecies),
+				draft -> SpeciesWizardAdapter.validate(getFeatureProvider(), getDiagram(), newSpecies, source, draft),
+				true, SpeciesWizardAdapter.parentNames(source, null), SpeciesWizardAdapter.wizardContext(source, null));
+		if (wizard.open() != Window.OK) return null;
 		
 	  	this.getDiagram().eResource().getContents().add(newSpecies);
-	  	this.updatePictogramElement(getDiagram());
-	  	System.out.println("this.getDiagram().eResource().getContents(): " + this.getDiagram().eResource().getContents());
-		newSpecies.setName(newSpeciesName);
-		CreateContext ac = new CreateContext();
-		ac.setLocation(context.getTargetLocation().getX(), context.getTargetLocation().getY());
-		ac.setSize(0, 0);
-		ac.setTargetContainer(getDiagram());
+		SpeciesWizardAdapter.apply(newSpecies, wizard.getResult());
 		return newSpecies;
 	}
 	
@@ -73,9 +71,11 @@ public class CreateSubSpeciesLinkFeature extends AbstractCreateSpeciesComponentL
 	public Connection create(ICreateConnectionContext context) {
 		Connection newConnection = null;
 		ESpecies source = getESpecies(context.getSourceAnchor());
-		ESpecies target = createESpecies(context,source);
+		ESpecies target = createESpecies(source);
+		if (target == null) return null;
 		if (source != null && target != null) {
 			PictogramElement targetpe = addESpecies(context, target);
+			SpeciesWizardAdapter.syncParentConnection(getFeatureProvider(), getDiagram(), target, List.of());
 			// create new business object
 			ESubSpeciesLink eReference = createEReference(source, target);
 			//eReference.setModel(source.getModel());
@@ -94,6 +94,7 @@ public class CreateSubSpeciesLinkFeature extends AbstractCreateSpeciesComponentL
 		GamaDiagramEditor diagramEditor = ((GamaDiagramEditor)ExampleUtil.getDiagramEditor(getFeatureProvider()));
 		
 		diagramEditor.addEOject(target);
+		ModelGenerator.modelValidation(getFeatureProvider(), getDiagram());
 		
 		return newConnection;
 	}

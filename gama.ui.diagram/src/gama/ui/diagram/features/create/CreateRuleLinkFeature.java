@@ -106,7 +106,7 @@ public class CreateRuleLinkFeature extends AbstractCreateSpeciesComponentLinkFea
 	
 	@Override
 	public String getCreateImageId() {
-		return GamaImageProvider.IMG_REFLEXLINK;
+		return GamaImageProvider.IMG_RULE;
 	}
 	public void execute(IContext context) {
 		super.execute(context);

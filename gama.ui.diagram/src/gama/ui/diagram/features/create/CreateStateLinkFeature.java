@@ -113,7 +113,7 @@ public class CreateStateLinkFeature extends AbstractCreateSpeciesComponentLinkFe
 	
 	@Override
 	public String getCreateImageId() {
-		return GamaImageProvider.IMG_REFLEXLINK;
+		return GamaImageProvider.IMG_STATE;
 	}
 	public void execute(IContext context) {
 		super.execute(context);

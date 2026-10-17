@@ -60,6 +60,7 @@ public class AddInheritingLinkFeature extends AbstractAddFeature {
               .createConnectionDecorator(connection, false, 0, true);
         createArrow(cd);
  
+        RelationStyle.apply(getDiagram(), connection);
         return connection;
     }
  

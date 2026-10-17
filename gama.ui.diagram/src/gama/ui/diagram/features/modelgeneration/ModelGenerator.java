@@ -35,6 +35,7 @@ import org.eclipse.xtext.resource.XtextResourceSet;
 import com.google.common.collect.Iterables;
 
 import gama.api.compilation.GamlCompilationError;
+import gama.api.compilation.descriptions.IExperimentDescription;
 import gama.api.compilation.descriptions.IModelDescription;
 import gama.api.constants.IGamlIssue;
 import gama.ui.diagram.editor.GamaDiagramEditor;
@@ -77,6 +78,7 @@ import gama.ui.diagram.metamodel.ETaskLink;
 import gama.ui.diagram.metamodel.EVariable;
 import gama.ui.diagram.metamodel.EWorldAgent;
 import gaml.compiler.resource.GamlResource;
+import gaml.compiler.validation.IGamlBuilderListener;
 
 /**
  * The Class ModelGenerator.
@@ -225,7 +227,7 @@ public class ModelGenerator {
 		if (expression.replace(" ", "").isEmpty()) return false;
 		URI du = ((GamaDiagramEditor) ExampleUtil.getDiagramEditor(fp)).getDiagramEditorInput().getUri();
 
-		final URI uri = URI.createURI(du.trimFragment().toString().replace(".gadl", ".gaml"), true);
+		final URI uri = syntaxCheckURI(du);
 
 		final XtextResourceSet rs = new SynchronizedXtextResourceSet();
 		rs.setClasspathURIContext(ModelGenerator.class);
@@ -248,6 +250,11 @@ public class ModelGenerator {
 		} catch (final Exception e) {
 			return true;
 		}
+	}
+
+	static URI syntaxCheckURI(final URI diagramURI) {
+		// Compiler listeners and validation contexts are keyed by URI, even across resource sets.
+		return diagramURI.trimFragment().trimFileExtension().appendFileExtension("syntax-check.gaml");
 	}
 
 	/**
@@ -281,12 +288,7 @@ public class ModelGenerator {
 		try {
 
 			resource.getValidationContext().clear();
-			resource.validate();
-
-			final List<GamlCompilationError> errors = new ArrayList<>();
-			for (GamlCompilationError error : resource.getValidationContext().getInternalErrors()) {
-				if (error.isError()) { errors.add(error); }
-			}
+			final List<GamlCompilationError> errors = validateDiagramResource(resource, diagramEditor);
 			diagramEditor.getErrorsLoc().clear();
 
 			diagramEditor.setErrors(errors);
@@ -296,6 +298,29 @@ public class ModelGenerator {
 			e.printStackTrace();
 		}
 		return null;
+	}
+
+	static List<GamlCompilationError> validateDiagramResource(final GamlResource resource,
+			final IGamlBuilderListener listener) {
+		final IModelDescription description = resource.buildCompleteDescription();
+		try {
+			final IModelDescription validated = description == null ? null : description.validate();
+			final List<IExperimentDescription> experiments = new ArrayList<>();
+			if (validated != null) {
+				for (final IExperimentDescription experiment : validated.getExperiments()) {
+					if (!experiment.isAbstract()) experiments.add(experiment);
+				}
+			}
+			final List<GamlCompilationError> errors = new ArrayList<>();
+			for (final GamlCompilationError error : resource.getValidationContext().getInternalErrors()) {
+				if (error.isError()) errors.add(error);
+			}
+			// Publish before disposal, directly to this editor rather than the URI-keyed global listener.
+			listener.validationEnded(validated, experiments, resource.getValidationContext());
+			return errors;
+		} finally {
+			if (description != null) description.dispose();
+		}
 	}
 
 	/**
@@ -348,11 +373,20 @@ public class ModelGenerator {
 			model.append(" ").append(facet.getName()).append(":").append(facet.getValue());
 		}
 		model.append(" {").append(EL);
+		model.append(defineSpeciesBody(species, level, id));
+		model.append(sp).append("}").append(EL);
+		return model.toString();
+	}
+
+	private static String defineSpeciesBody(final ESpecies species, final int level, final String id) {
+		final StringBuilder model = new StringBuilder();
 		for (final EVariable var : species.getVariables()) { model.append(defineVariable(var, level + 1)); }
 		String idT = ModelStructure.getElementId(species);
 		boolean isId = idT.equals(id);
 		if (isId) { model.append(EL).append(idT).append(EL); }
-		model.append(defineInit(species, isId ? -1 : level + 1));
+		if (!(species instanceof EExperiment) || species.getInit() != null && !species.getInit().isBlank()) {
+			model.append(defineInit(species, isId ? -1 : level + 1));
+		}
 		if (isId) { model.append(EL).append(idT).append(EL); }
 
 		final Map<String, EReflexLink> reflexMap = new Hashtable<>();
@@ -439,8 +473,6 @@ public class ModelGenerator {
 			model.append(defineSpecies(link.getMicro(), level + 1, id));
 		}
 
-		model.append(sp).append("}").append(EL);
-
 		return model.toString();
 	}
 
@@ -468,7 +500,7 @@ public class ModelGenerator {
 			varStr.append(" update: ").append(var.getUpdate());
 		}
 		if (var.getFunction() != null && !"".equals(var.getFunction())) {
-			varStr.append(" -> {").append(var.getFunction()).append("}");
+			varStr.append(" function: ").append(var.getFunction());
 		}
 		if (var.getMin() != null && !"".equals(var.getMin())) { varStr.append(" min: ").append(var.getMin()); }
 		if (var.getMax() != null && !"".equals(var.getMax())) { varStr.append(" max: ").append(var.getMax()); }
@@ -501,7 +533,7 @@ public class ModelGenerator {
 					+ (var.getInit() == null || var.getInit().isEmpty() ? "" : " <- " + var.getInit());
 		}
 		result.append(sp).append(returnType).append(" ").append(manageName(action.getName()))
-				.append(arguments.isEmpty() ? "" : "(" + arguments + ")").append(" {").append(EL);
+				.append("(").append(arguments).append(") {").append(EL);
 		final String code = action.getGamlCode();
 		if (code != null && !code.isEmpty()) { result.append(code); }
 		result.append(EL).append(sp).append("}").append(EL);
@@ -574,7 +606,9 @@ public class ModelGenerator {
 			code = ((ETask) object).getGamlCode();
 		} else if (object instanceof EPlan) {
 			code = ((EPlan) object).getGamlCode();
-		} else if (object instanceof EPerceive) { code = ((EPerceive) object).getGamlCode(); }
+		} else if (object instanceof EPerceive) {
+			code = ((EPerceive) object).getGamlCode();
+		} else if (object instanceof ERule) { code = ((ERule) object).getGamlCode(); }
 		result.append(" {").append(EL);
 		if (code != null && !code.isEmpty()) { result.append(code); }
 
@@ -678,7 +712,13 @@ public class ModelGenerator {
 			}
 
 			model += " {" + EL;
+			model += defineSpeciesBody(exp, 0, id);
 			for (final EParameter link : exp.getParameters()) { model += defineParameter(link); }
+			if (!exp.getMonitors().isEmpty()) {
+				model += "\toutput{" + EL;
+				for (final EMonitor mon : exp.getMonitors()) { model += defineMonitor(mon); }
+				model += "\t}" + EL;
+			}
 
 			model += EL + "}" + EL;
 
@@ -690,6 +730,7 @@ public class ModelGenerator {
 			}
 
 			model += " {" + EL;
+			model += defineSpeciesBody(exp, 0, id);
 
 			for (final EParameter link : exp.getParameters()) { model += defineParameter(link); }
 
@@ -902,7 +943,9 @@ public class ModelGenerator {
 			if (worldAgent == null) return "";
 			String modelName = diagram.getName();
 			if (!Character.isLetter(modelName.charAt(0))) { modelName = "_" + modelName; }
-			model = "model " + modelName + EL + EL + "global";
+			final var documentation = DiagramModelDocumentation.read(diagram);
+			model = (documentation.isEmpty() ? "" : documentation.comment(modelName, EL) + EL)
+					+ "model " + modelName + EL + EL + "global";
 
 			if (worldAgent.getSkills() != null && !worldAgent.getSkills().isEmpty()) {
 				model += " skills:" + worldAgent.getSkills();

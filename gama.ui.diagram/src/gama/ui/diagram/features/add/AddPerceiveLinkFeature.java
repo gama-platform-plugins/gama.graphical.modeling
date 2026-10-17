@@ -52,6 +52,7 @@ public class AddPerceiveLinkFeature extends AbstractAddFeature {
         gaService.setLocation(text, 10, 0);
         text.setValue("has the perception");
  
+        RelationStyle.apply(getDiagram(), connection);
         return connection;
     }
  

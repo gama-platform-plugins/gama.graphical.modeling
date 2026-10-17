@@ -52,6 +52,7 @@ public class AddReflexLinkFeature extends AbstractAddFeature {
         gaService.setLocation(text, 10, 0);
         text.setValue("has the reflex");
  
+        RelationStyle.apply(getDiagram(), connection);
         return connection;
     }
  

@@ -97,7 +97,7 @@ public class AddTaskFeature extends AbstractAddShapeFeature {
 
 			Shape shape3 = peCreateService.createShape(containerShape, false);
 
-			Image icon1 = gaService.createImage(shape3, GamaImageProvider.IMG_REFLEXLINK);
+			Image icon1 = gaService.createImage(shape3, GamaImageProvider.IMG_TASK);
 			gaService.setLocationAndSize(icon1, 100, 100, 15, 15);
 
 			link(shape3, addedClass);

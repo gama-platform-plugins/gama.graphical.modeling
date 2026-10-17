@@ -51,6 +51,7 @@ public class AddActionLinkFeature extends AbstractAddFeature {
         gaService.setLocation(text, 10, 0);
         text.setValue("has the action");
  
+        RelationStyle.apply(getDiagram(), connection);
         return connection;
     }
  

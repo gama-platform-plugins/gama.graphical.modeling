@@ -68,6 +68,7 @@ public class AddDisplayLinkFeature extends AbstractAddFeature {
 		gaService.setLocation(text, 10, 0);
 		text.setValue("has display");
 
+		RelationStyle.apply(getDiagram(), connection);
 		return connection;
 	}
 
