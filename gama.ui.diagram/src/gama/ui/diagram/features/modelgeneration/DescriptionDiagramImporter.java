@@ -27,7 +27,6 @@ import gama.ui.diagram.metamodel.EEquationLink;
 import gama.ui.diagram.metamodel.EExperiment;
 import gama.ui.diagram.metamodel.EExperimentLink;
 import gama.ui.diagram.metamodel.EFacet;
-import gama.ui.diagram.metamodel.EGUIExperiment;
 import gama.ui.diagram.metamodel.EGamaLink;
 import gama.ui.diagram.metamodel.EGamaModel;
 import gama.ui.diagram.metamodel.EGamaObject;
@@ -123,28 +122,50 @@ public final class DescriptionDiagramImporter {
 
 	private void populateSpecies(final ITypeDescription description, final ESpecies target) {
 		copyFacets(description, target, Set.of("name", "parent", "skills", "type"));
+		if (target instanceof EExperiment experiment && description.hasFacet("type")) {
+			ExperimentKind.set(experiment, facet(description, "type"));
+		}
 		// The resolved skills also include inherited and implicit skills; only copy an explicit skills facet.
 		if (description.hasFacet("skills")) {
 			target.getSkills().addAll(description.getFacet("skills").getStrings(description, false));
 		}
+		boolean importedInit = false;
 		for (final IDescription child : description.getOwnChildren()) {
 			if (!isDeclaredHere(child, description)) continue;
+			final boolean primaryInit = "init".equals(child.getKeyword()) && !importedInit
+					&& anonymousInit(child)
+					&& !child.hasFacet("when");
+			if ("init".equals(child.getKeyword())) importedInit = true;
 			if (child instanceof IVariableDescription && !"parameter".equals(child.getKeyword())) {
 				final EVariable variable = variable(child);
 				variable.setOwner(target);
 				target.getVariables().add(variable);
 			} else if (child instanceof IClassDescription declaration) {
 				addSpecies(declaration, target);
-			} else if ("init".equals(child.getKeyword())) {
+			} else if (primaryInit) {
 				target.setInit(body(child));
 			} else if ("output".equals(child.getKeyword()) && target instanceof EExperiment) {
 				importOutputs(child, (EExperiment) target);
 			} else if ("parameter".equals(child.getKeyword()) && target instanceof EExperiment) {
 				addParameter(child, (EExperiment) target);
+			} else if (target instanceof EExperiment experiment
+					&& !Set.of("action", "aspect", "reflex", "init", "abort", "state", "task", "plan", "perceive", "rule", "equation")
+							.contains(child.getKeyword())) {
+				final var node = NodeModelUtils.getNode(child.getUnderlyingElement());
+				final String declaration = node == null ? child.getSerializer().serialize(child, false) : node.getText();
+				experiment.setGamlCode((experiment.getGamlCode() == null ? "" : experiment.getGamlCode())
+						+ declaration + System.lineSeparator());
 			} else {
 				addComponent(child, target);
 			}
 		}
+	}
+
+	private static boolean anonymousInit(final IDescription description) {
+		if (description.getUnderlyingElement() instanceof gaml.compiler.gaml.GamlDefinition declaration) {
+			return declaration.getName() == null || declaration.getName().isBlank();
+		}
+		return description.getName() == null || description.getName().isBlank() || "init".equals(description.getName());
 	}
 
 	static boolean isDeclaredHere(final IDescription description, final IDescription owner) {
@@ -190,7 +211,7 @@ public final class DescriptionDiagramImporter {
 	}
 
 	private void addComponent(final IDescription description, final ESpecies owner) {
-		if (!Set.of("action", "aspect", "reflex", "state", "task", "plan", "perceive", "rule", "equation")
+		if (!Set.of("action", "aspect", "reflex", "init", "abort", "state", "task", "plan", "perceive", "rule", "equation")
 				.contains(description.getKeyword())) return;
 		final EGamaObject target;
 		final EGamaLink link;
@@ -227,14 +248,15 @@ public final class DescriptionDiagramImporter {
 				target = aspect;
 				link = relation;
 			}
-			case "reflex" -> {
+			case "reflex", "init", "abort" -> {
 				final EReflex reflex = factory.createEReflex();
+				reflex.setKind(description.getKeyword());
 				reflex.setGamlCode(code);
 				final EReflexLink relation = factory.createEReflexLink();
 				relation.setSpecies(owner);
 				relation.setReflex(reflex);
 				owner.getReflexLinks().add(relation);
-				owner.getReflexList().add(description.getName());
+				if ("reflex".equals(description.getKeyword())) owner.getReflexList().add(lifecycleName(description));
 				reflex.getReflexLinks().add(relation);
 				target = reflex;
 				link = relation;
@@ -307,17 +329,23 @@ public final class DescriptionDiagramImporter {
 			}
 			default -> { return; }
 		}
-		target.setName(description.getName());
+		target.setName(target instanceof EReflex ? lifecycleName(description) : description.getName());
 		copyFacets(description, target, Set.of("name", "type"));
 		if (target instanceof EAction) copyVirtualFacet(description, target);
 		model.getObjects().add(target);
 		connect(link, owner, target);
 	}
 
+	private static String lifecycleName(final IDescription description) {
+		final String name = description.getUnderlyingElement() instanceof gaml.compiler.gaml.GamlDefinition declaration
+				? declaration.getName() : description.getName();
+		return name == null ? "" : name;
+	}
+
 	private void importOutputs(final IDescription output, final EExperiment owner) {
 		for (final IDescription child : output.getOwnChildren()) {
 			if (!isDeclaredHere(child, output)) continue;
-			if ("display".equals(child.getKeyword()) && owner instanceof EGUIExperiment) {
+			if ("display".equals(child.getKeyword())) {
 				final EDisplay display = factory.createEDisplay();
 				display.setName(child.getName());
 				display.setDefineGamlCode(true);
@@ -325,15 +353,16 @@ public final class DescriptionDiagramImporter {
 				copyFacets(child, display, Set.of("name"));
 				model.getObjects().add(display);
 				final EDisplayLink link = factory.createEDisplayLink();
-				link.setExperiment((EGUIExperiment) owner);
+				link.setExperiment(owner);
 				link.setDisplay(display);
 				owner.getDisplayLinks().add(link);
 				display.setDisplayLink(link);
 				connect(link, owner, display);
 			} else if ("monitor".equals(child.getKeyword())) {
 				final EMonitor monitor = factory.createEMonitor();
-				monitor.setName(child.getName());
+				monitor.setName(label(child, child.getName()));
 				monitor.setValue(facet(child, "value"));
+				copyFacets(child, monitor, Set.of("name", "value"));
 				owner.getMonitors().add(monitor);
 				model.getObjects().add(monitor);
 			}
@@ -342,8 +371,8 @@ public final class DescriptionDiagramImporter {
 
 	private void addParameter(final IDescription description, final EExperiment owner) {
 		final EParameter parameter = factory.createEParameter();
-		parameter.setName(description instanceof IVariableDescription
-				? ((IVariableDescription) description).getParameterName() : description.getName());
+		parameter.setName(label(description, description instanceof IVariableDescription
+				? ((IVariableDescription) description).getParameterName() : description.getName()));
 		parameter.setVariable(description.hasFacet("var") ? facet(description, "var") : description.getName());
 		parameter.setInit(facet(description, "init"));
 		parameter.setMin(facet(description, "min"));
@@ -351,8 +380,28 @@ public final class DescriptionDiagramImporter {
 		parameter.setStep(facet(description, "step"));
 		parameter.setAmong(facet(description, "among"));
 		parameter.setCategory(description.hasFacet("category") ? description.getLitteral("category") : "");
+		copyFacets(description, parameter, Set.of("name", "var", "init", "min", "max", "step", "among"));
 		owner.getParameters().add(parameter);
 		model.getObjects().add(parameter);
+	}
+
+	private static String label(final IDescription description, final String fallback) {
+		final EObject source = description.getUnderlyingElement();
+		String value = sourceFacet(source, "name");
+		if (value == null && source instanceof gaml.compiler.gaml.Statement statement && statement.getExpr() != null) {
+			final var node = NodeModelUtils.getNode(statement.getExpr());
+			if (node != null) value = NodeModelUtils.getTokenText(node);
+		}
+		if (value == null && source instanceof gaml.compiler.gaml.GamlDefinition) {
+			final var nodes = NodeModelUtils.findNodesForFeature(source,
+					gaml.compiler.gaml.GamlPackage.Literals.GAML_DEFINITION__NAME);
+			if (!nodes.isEmpty()) value = NodeModelUtils.getTokenText(nodes.get(0));
+		}
+		if (value != null && value.length() >= 2 && (value.charAt(0) == '"' || value.charAt(0) == '\'')
+				&& value.charAt(value.length() - 1) == value.charAt(0)) {
+			return new org.eclipse.xtext.conversion.impl.STRINGValueConverter().toValue(value, NodeModelUtils.getNode(source));
+		}
+		return fallback;
 	}
 
 	private void connectInheritance() {

@@ -4,10 +4,10 @@ import gama.ui.diagram.editor.GamaDiagramEditor;
 import gama.ui.diagram.features.ExampleUtil;
 import gama.ui.diagram.features.add.AddDisplayFeature;
 import gama.ui.diagram.features.modelgeneration.ModelGenerator;
+import gama.ui.diagram.features.modelgeneration.ExperimentKind;
 import gama.ui.diagram.metamodel.EDisplay;
 import gama.ui.diagram.metamodel.EDisplayLink;
 import gama.ui.diagram.metamodel.EExperiment;
-import gama.ui.diagram.metamodel.EGUIExperiment;
 import gama.ui.diagram.metamodel.ESpecies;
 import gama.ui.diagram.metamodel.ESubSpeciesLink;
 import gama.ui.diagram.swt.image.GamaImageProvider;
@@ -40,7 +40,7 @@ public class CreateDisplayLinkFeature extends AbstractCreateConnectionFeature {
 	}
 
 	public boolean canCreate(ICreateConnectionContext context) {
-		EGUIExperiment source = getEExperiment(context.getSourceAnchor());
+		EExperiment source = getEExperiment(context.getSourceAnchor());
 		if (source != null) {
 			return true;
 		}
@@ -97,7 +97,8 @@ public class CreateDisplayLinkFeature extends AbstractCreateConnectionFeature {
 	
 	public Connection create(ICreateConnectionContext context, boolean askName) {
 		Connection newConnection = null;
-		EGUIExperiment source = getEExperiment(context.getSourceAnchor());
+		EExperiment source = getEExperiment(context.getSourceAnchor());
+		if (source == null) return null;
 		
 		EDisplay target = createEDisplay(context, askName, source);
 		if (source != null && target != null) {
@@ -124,12 +125,12 @@ public class CreateDisplayLinkFeature extends AbstractCreateConnectionFeature {
 	}
 
 	
-	private EGUIExperiment getEExperiment(Anchor anchor) {
+	private EExperiment getEExperiment(Anchor anchor) {
 		if (anchor != null) {
 			Object object = getBusinessObjectForPictogramElement(anchor
 					.getParent());
-			if (object instanceof EGUIExperiment) {
-				return (EGUIExperiment) object;
+			if (object instanceof EExperiment experiment && "gui".equals(ExperimentKind.of(experiment))) {
+				return experiment;
 			}
 		}
 		return null;
@@ -146,7 +147,7 @@ public class CreateDisplayLinkFeature extends AbstractCreateConnectionFeature {
 	}
 
 	
-	private EDisplayLink createEReference(EGUIExperiment source, EDisplay target) {
+	private EDisplayLink createEReference(EExperiment source, EDisplay target) {
 		EDisplayLink eReference = gama.ui.diagram.metamodel.GamaFactory.eINSTANCE.createEDisplayLink();
 		eReference.setSource(source);
 		eReference.setTarget(target);

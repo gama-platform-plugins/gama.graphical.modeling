@@ -26,7 +26,7 @@ import gama.ui.diagram.metamodel.EDisplayLink;
 import gama.ui.diagram.metamodel.EEquation;
 import gama.ui.diagram.metamodel.EEquationLink;
 import gama.ui.diagram.metamodel.EExperimentLink;
-import gama.ui.diagram.metamodel.EGUIExperiment;
+import gama.ui.diagram.metamodel.EExperiment;
 import gama.ui.diagram.metamodel.EGamaObject;
 import gama.ui.diagram.metamodel.EPerceive;
 import gama.ui.diagram.metamodel.EPerceiveLink;
@@ -71,8 +71,8 @@ public class CustomDeleteFeature extends DefaultDeleteFeature {
 		deleteBusinessObject(ex.getAspectLinks());
 		 
 		
-		if (ex instanceof EGUIExperiment) {
-			final EList liste = ((EGUIExperiment) ex).getDisplayLinks();
+		if (ex instanceof EExperiment experiment) {
+			final EList liste = experiment.getDisplayLinks();
 			final List<?> obj = new ArrayList();
 			obj.addAll(liste);
 			for (final Object o : obj) {

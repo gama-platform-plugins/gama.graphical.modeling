@@ -60,7 +60,7 @@ public final class SpeciesWizardAdapter {
 						text(var.getUpdate()), text(var.getFunction()), text(var.getMin()), text(var.getMax()))).toList();
 		final List<String> reflexes = new ArrayList<>();
 		for (final var link : species.getReflexLinks()) {
-			if (link.getTarget() != null && link.getTarget().getName() != null) {
+			if (link.getReflex() != null && "reflex".equals(link.getReflex().getKind()) && link.getTarget().getName() != null) {
 				reflexes.add(link.getTarget().getName());
 			}
 		}
@@ -133,10 +133,14 @@ public final class SpeciesWizardAdapter {
 		}
 		species.getFacets().clear();
 		species.getFacets().addAll(facets);
+		applyAttributes(species, draft.variables());
+	}
+
+	static void applyAttributes(final ESpecies species, final List<Variable> values) {
 		final Map<String, EVariable> oldVariables = new LinkedHashMap<>();
 		for (final EVariable variable : species.getVariables()) oldVariables.put(variable.getName(), variable);
 		final List<EVariable> variables = new ArrayList<>();
-		for (final Variable value : draft.variables()) {
+		for (final Variable value : values) {
 			EVariable variable = oldVariables.get(value.name());
 			if (variable == null) variable = GamaFactory.eINSTANCE.createEVariable();
 			variable.setName(value.name());
@@ -301,7 +305,7 @@ public final class SpeciesWizardAdapter {
 		return matches.get(0);
 	}
 
-	private static void applyParent(final ESpecies species, final ESpecies parent, final String name,
+	static void applyParent(final ESpecies species, final ESpecies parent, final String name,
 			final boolean explicit) {
 		if (species.getInheritsFrom() != parent) species.setInheritsFrom(parent);
 		final List<EInheritLink> links = new ArrayList<>();

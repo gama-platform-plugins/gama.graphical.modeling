@@ -21,6 +21,7 @@ import org.eclipse.graphiti.util.IColorConstant;
 
 import gama.ui.diagram.metamodel.EGamaLink;
 import gama.ui.diagram.metamodel.EClassSpecies;
+import gama.ui.diagram.metamodel.EReflexLink;
 import gama.ui.diagram.metamodel.ESubSpeciesLink;
 import gama.ui.diagram.metamodel.GamaPackage;
 
@@ -81,6 +82,7 @@ public final class RelationStyle {
 					label = ga.createDefaultMultiText(diagram, decorator, text.getValue());
 				}
 				graphics = label;
+				label.setValue(labelText(connection, label.getValue()));
 				decorator.setLocationRelative(true);
 				decorator.setLocation(0.5);
 				decorator.setActive(true);
@@ -110,6 +112,7 @@ public final class RelationStyle {
 			final GraphicsAlgorithm graphics = decorator.getGraphicsAlgorithm();
 			final AbstractText text = label(graphics);
 			if (text != null) {
+				if (!text.getValue().equals(labelText(connection, text.getValue()))) return false;
 				final var font = text.getFont();
 				if (!(graphics instanceof MultiText)
 						|| !matches(graphics.getBackground(), IColorConstant.WHITE)
@@ -134,6 +137,12 @@ public final class RelationStyle {
 			}
 		}
 		return true;
+	}
+
+	private static String labelText(final Connection connection, final String current) {
+		final Object object = Graphiti.getLinkService().getBusinessObjectForLinkedPictogramElement(connection);
+		return object instanceof EReflexLink link && link.getReflex() != null
+				? "has the " + link.getReflex().getKind() : current;
 	}
 
 	private static AbstractText label(final GraphicsAlgorithm graphics) {

@@ -76,6 +76,7 @@
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="gamlCode" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="reflexLinks" upperBound="-1"
         eType="#//EReflexLink"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="kind" defaultValueLiteral="reflex" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="EExperiment" eSuperTypes="#//ESpecies">
     <eStructuralFeatures xsi:type="ecore:EReference" name="experimentLink" eType="#//EExperimentLink"/>
@@ -85,6 +86,7 @@
         eType="#//EParameter"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="monitors" upperBound="-1"
         eType="#//EMonitor"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="gamlCode" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="EGUIExperiment" eSuperTypes="#//EExperiment"/>
   <eClassifiers xsi:type="ecore:EClass" name="EBatchExperiment" eSuperTypes="#//EExperiment"/>
@@ -113,7 +115,7 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="species" eType="#//ESpecies"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="EDisplayLink" eSuperTypes="#//EGamaLink">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="experiment" eType="#//EGUIExperiment"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="experiment" eType="#//EExperiment"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="display" eType="#//EDisplay"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="EDisplay" eSuperTypes="#//EGamaObject">

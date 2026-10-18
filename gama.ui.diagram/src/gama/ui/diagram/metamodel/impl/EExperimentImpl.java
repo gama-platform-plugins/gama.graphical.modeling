@@ -38,11 +38,26 @@ import gama.ui.diagram.metamodel.GamaPackage;
  *   <li>{@link gama.ui.diagram.metamodel.impl.EExperimentImpl#getDisplayLinks <em>Display Links</em>}</li>
  *   <li>{@link gama.ui.diagram.metamodel.impl.EExperimentImpl#getParameters <em>Parameters</em>}</li>
  *   <li>{@link gama.ui.diagram.metamodel.impl.EExperimentImpl#getMonitors <em>Monitors</em>}</li>
+ *   <li>{@link gama.ui.diagram.metamodel.impl.EExperimentImpl#getGamlCode <em>Gaml Code</em>}</li>
  * </ul>
  *
  * @generated
  */
 public class EExperimentImpl extends ESpeciesImpl implements EExperiment {
+	protected String gamlCode;
+
+	@Override
+	public String getGamlCode() { return gamlCode; }
+
+	@Override
+	public void setGamlCode(final String value) {
+		final String previous = gamlCode;
+		gamlCode = value;
+		if (eNotificationRequired()) {
+			eNotify(new ENotificationImpl(this, Notification.SET, GamaPackage.EEXPERIMENT__GAML_CODE, previous, value));
+		}
+	}
+
 	/**
 	 * The cached value of the '{@link #getExperimentLink() <em>Experiment Link</em>}' reference.
 	 * <!-- begin-user-doc -->
@@ -193,6 +208,8 @@ public class EExperimentImpl extends ESpeciesImpl implements EExperiment {
 				return getParameters();
 			case GamaPackage.EEXPERIMENT__MONITORS:
 				return getMonitors();
+			case GamaPackage.EEXPERIMENT__GAML_CODE:
+				return getGamlCode();
 		}
 		return super.eGet(featureID, resolve, coreType);
 	}
@@ -221,6 +238,9 @@ public class EExperimentImpl extends ESpeciesImpl implements EExperiment {
 				getMonitors().clear();
 				getMonitors().addAll((Collection<? extends EMonitor>)newValue);
 				return;
+			case GamaPackage.EEXPERIMENT__GAML_CODE:
+				setGamlCode((String)newValue);
+				return;
 		}
 		super.eSet(featureID, newValue);
 	}
@@ -245,6 +265,9 @@ public class EExperimentImpl extends ESpeciesImpl implements EExperiment {
 			case GamaPackage.EEXPERIMENT__MONITORS:
 				getMonitors().clear();
 				return;
+			case GamaPackage.EEXPERIMENT__GAML_CODE:
+				setGamlCode(null);
+				return;
 		}
 		super.eUnset(featureID);
 	}
@@ -265,6 +288,8 @@ public class EExperimentImpl extends ESpeciesImpl implements EExperiment {
 				return parameters != null && !parameters.isEmpty();
 			case GamaPackage.EEXPERIMENT__MONITORS:
 				return monitors != null && !monitors.isEmpty();
+			case GamaPackage.EEXPERIMENT__GAML_CODE:
+				return gamlCode != null;
 		}
 		return super.eIsSet(featureID);
 	}

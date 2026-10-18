@@ -34,12 +34,12 @@ public interface EDisplayLink extends EGamaLink {
 	 * </p>
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>Experiment</em>' reference.
-	 * @see #setExperiment(EGUIExperiment)
+	 * @see #setExperiment(EExperiment)
 	 * @see gama.ui.diagram.metamodel.GamaPackage#getEDisplayLink_Experiment()
 	 * @model
 	 * @generated
 	 */
-	EGUIExperiment getExperiment();
+	EExperiment getExperiment();
 
 	/**
 	 * Sets the value of the '{@link gama.ui.diagram.metamodel.EDisplayLink#getExperiment <em>Experiment</em>}' reference.
@@ -49,7 +49,7 @@ public interface EDisplayLink extends EGamaLink {
 	 * @see #getExperiment()
 	 * @generated
 	 */
-	void setExperiment(EGUIExperiment value);
+	void setExperiment(EExperiment value);
 
 	/**
 	 * Returns the value of the '<em><b>Display</b></em>' reference.

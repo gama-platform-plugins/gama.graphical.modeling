@@ -32,11 +32,29 @@ import gama.ui.diagram.metamodel.GamaPackage;
  * <ul>
  *   <li>{@link gama.ui.diagram.metamodel.impl.EReflexImpl#getGamlCode <em>Gaml Code</em>}</li>
  *   <li>{@link gama.ui.diagram.metamodel.impl.EReflexImpl#getReflexLinks <em>Reflex Links</em>}</li>
+ *   <li>{@link gama.ui.diagram.metamodel.impl.EReflexImpl#getKind <em>Kind</em>}</li>
  * </ul>
  *
  * @generated
  */
 public class EReflexImpl extends EGamaObjectImpl implements EReflex {
+	protected String kind = "reflex";
+
+	@Override
+	public String getKind() { return kind; }
+
+	@Override
+	public void setKind(final String value) {
+		if (!java.util.List.of("reflex", "init", "abort").contains(value)) {
+			throw new IllegalArgumentException("Unknown reflex kind: " + value);
+		}
+		final String previous = kind;
+		kind = value;
+		if (eNotificationRequired()) {
+			eNotify(new ENotificationImpl(this, Notification.SET, GamaPackage.EREFLEX__KIND, previous, value));
+		}
+	}
+
 	/**
 	 * The default value of the '{@link #getGamlCode() <em>Gaml Code</em>}' attribute.
 	 * <!-- begin-user-doc -->
@@ -127,6 +145,8 @@ public class EReflexImpl extends EGamaObjectImpl implements EReflex {
 	@Override
 	public Object eGet(int featureID, boolean resolve, boolean coreType) {
 		switch (featureID) {
+			case GamaPackage.EREFLEX__KIND:
+				return getKind();
 			case GamaPackage.EREFLEX__GAML_CODE:
 				return getGamlCode();
 			case GamaPackage.EREFLEX__REFLEX_LINKS:
@@ -144,6 +164,9 @@ public class EReflexImpl extends EGamaObjectImpl implements EReflex {
 	@Override
 	public void eSet(int featureID, Object newValue) {
 		switch (featureID) {
+			case GamaPackage.EREFLEX__KIND:
+				setKind((String)newValue);
+				return;
 			case GamaPackage.EREFLEX__GAML_CODE:
 				setGamlCode((String)newValue);
 				return;
@@ -163,6 +186,9 @@ public class EReflexImpl extends EGamaObjectImpl implements EReflex {
 	@Override
 	public void eUnset(int featureID) {
 		switch (featureID) {
+			case GamaPackage.EREFLEX__KIND:
+				setKind("reflex");
+				return;
 			case GamaPackage.EREFLEX__GAML_CODE:
 				setGamlCode(GAML_CODE_EDEFAULT);
 				return;
@@ -181,6 +207,8 @@ public class EReflexImpl extends EGamaObjectImpl implements EReflex {
 	@Override
 	public boolean eIsSet(int featureID) {
 		switch (featureID) {
+			case GamaPackage.EREFLEX__KIND:
+				return !"reflex".equals(kind);
 			case GamaPackage.EREFLEX__GAML_CODE:
 				return GAML_CODE_EDEFAULT == null ? gamlCode != null : !GAML_CODE_EDEFAULT.equals(gamlCode);
 			case GamaPackage.EREFLEX__REFLEX_LINKS:

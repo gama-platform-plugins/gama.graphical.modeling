@@ -73,7 +73,7 @@ public class ModelStructure {
 			return "action:"+ action.getActionLinks().get(0).getSpecies().getName() + ":"+ action.getName(); 
 		}else if (newElement instanceof EReflex) {
 			EReflex reflex = (EReflex) newElement;
-			return "reflex:"+ reflex.getReflexLinks().get(0).getSpecies().getName() + ":"+ reflex.getName(); 
+			return reflex.getKind() + ":"+ reflex.getReflexLinks().get(0).getSpecies().getName() + ":"+ reflex.getName();
 		}else if (newElement instanceof ESpecies) {
 			ESpecies species = (ESpecies) newElement;
 			return "species:"+ species.getName(); 

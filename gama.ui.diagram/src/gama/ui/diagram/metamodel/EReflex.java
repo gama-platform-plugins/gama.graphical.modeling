@@ -19,6 +19,7 @@ import org.eclipse.emf.common.util.EList;
  * <ul>
  *   <li>{@link gama.ui.diagram.metamodel.EReflex#getGamlCode <em>Gaml Code</em>}</li>
  *   <li>{@link gama.ui.diagram.metamodel.EReflex#getReflexLinks <em>Reflex Links</em>}</li>
+ *   <li>{@link gama.ui.diagram.metamodel.EReflex#getKind <em>Kind</em>}</li>
  * </ul>
  *
  * @see gama.ui.diagram.metamodel.GamaPackage#getEReflex()
@@ -26,6 +27,14 @@ import org.eclipse.emf.common.util.EList;
  * @generated
  */
 public interface EReflex extends EGamaObject {
+	/**
+	 * Lifecycle keyword: reflex, init or abort.
+	 * @model default="reflex"
+	 */
+	String getKind();
+
+	void setKind(String value);
+
 	/**
 	 * Returns the value of the '<em><b>Gaml Code</b></em>' attribute.
 	 * <!-- begin-user-doc -->

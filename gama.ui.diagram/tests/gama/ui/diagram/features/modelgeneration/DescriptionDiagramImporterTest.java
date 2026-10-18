@@ -7,6 +7,7 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 
 import org.eclipse.emf.ecore.EObject;
@@ -342,8 +343,9 @@ public final class DescriptionDiagramImporterTest {
 				&& "2".equals(actionNode.getVariables().get(0).getInit()), "Action signature/default lost");
 		check(actionNode.getGamlCode().contains("return amount * 2;"), "Action body lost");
 		check(node.getRuleLinks().get(0).getRule().getGamlCode().contains("{ brace }"), "Rule body lost");
-		check(ModelGenerator.defineGeneric(node.getRuleLinks().get(0), 1).contains("{ brace }"),
-				"Rule body lost when regenerating GAML");
+		check(ModelGenerator.defineGeneric(node.getRuleLinks().get(0), 1).contains("rule rule_name when:true;")
+				&& !ModelGenerator.defineGeneric(node.getRuleLinks().get(0), 1).contains("{ brace }"),
+				"Codeless rule should retain, but never generate, its legacy body");
 		final var virtual = gama.ui.diagram.metamodel.GamaFactory.eINSTANCE.createEFacet();
 		virtual.setName("virtual");
 		virtual.setValue("true");
@@ -360,7 +362,7 @@ public final class DescriptionDiagramImporterTest {
 				&& "experiment_counter".equals(experiment.getVariables().get(0).getName()), "Parameter shown as attribute");
 		check("population".equals(experiment.getParameters().get(0).getVariable()), "Parameter binding lost");
 		check("Initial population".equals(experiment.getParameters().get(0).getName()), "Parameter label lost");
-		check(ModelGenerator.defineParameter(experiment.getParameters().get(0)).contains("category: \"Inputs\""),
+		check(ModelGenerator.defineParameter(experiment.getParameters().get(0)).contains("category:\"Inputs\""),
 				"Parameter category double-quoted when regenerating GAML");
 		check(experiment.getMonitors().size() == 1 && experiment.getDisplayLinks().size() == 1, "Output declarations lost");
 		check(experiment.getDisplayLinks().get(0).getDisplay().getGamlCode().contains("aspect:aspect_name"), "Display body");
@@ -440,8 +442,11 @@ public final class DescriptionDiagramImporterTest {
 				? IClassDescription.class : statement instanceof S_Experiment ? IExperimentDescription.class
 				: statement instanceof S_Species ? ISpeciesDescription.class
 				: statement instanceof gaml.compiler.gaml.S_Callable ? IActionDescription.class
+				: Set.of("reflex", "init", "abort", "state", "task", "plan", "perceive", "rule").contains(keyword) ? IStatementDescription.class
 				: statement instanceof S_Definition ? IVariableDescription.class : IStatementDescription.class;
-		final var description = new Description(kind, keyword, name);
+		final String compiledName = Set.of("reflex", "init", "abort").contains(keyword)
+				&& (name == null || name.isBlank()) ? "synthetic_" + keyword : name;
+		final var description = new Description(kind, keyword, compiledName);
 		description.source = statement;
 		description.type = statement instanceof S_Definition ? keyword : "int";
 		sourceFacets(description, statement);
@@ -454,7 +459,7 @@ public final class DescriptionDiagramImporterTest {
 							&& "true".equals(NodeModelUtils.getTokenText(NodeModelUtils.findActualNodeFor(f.getExpr()))));
 			description.facets.remove("virtual");
 		}
-		if (statement instanceof S_Species) locals.put(name, description);
+		if (statement instanceof S_Species || statement instanceof S_Experiment) locals.put(name, description);
 		if (statement instanceof ActionArguments callable) {
 			for (final var argument : callable.getArgs()) {
 				final var parameter = variable(argument.getName());
@@ -590,7 +595,51 @@ public final class DescriptionDiagramImporterTest {
 			}
 
 		}
-		check(checked == 17, "Missing stored code/layer attributes: " + checked);
+		check(checked == 20, "Missing stored code/layer attributes: " + checked);
+	}
+
+	private static void experimentKindsAndBodies() {
+		final var parser = GamlStandaloneSetup.doSetup().getInstance(IParser.class);
+		final var imported = importSource(parser, """
+				model kinds
+				global { int value <- 1; }
+				experiment checks type:test {
+					test "works" { assert value = 1; }
+				}
+				experiment explore type:batch until:cycle > 10 {
+					method exhaustive;
+				}
+				""");
+		final var test = (EExperiment) findSpecies(imported, "checks");
+		final var batch = (EExperiment) findSpecies(imported, "explore");
+		check("test".equals(ExperimentKind.of(test)), "Test experiment imported as GUI");
+		check(test.getGamlCode().contains("assert value = 1;"), "Test body disappeared on import");
+		check(batch.getGamlCode().contains("method exhaustive;"), "Batch method disappeared on import");
+		final var resource = new org.eclipse.emf.ecore.xmi.impl.XMIResourceImpl(
+				org.eclipse.emf.common.util.URI.createURI("memory:/kinds.gadl"));
+		resource.getContents().add(imported);
+		try {
+			final var bytes = new java.io.ByteArrayOutputStream();
+			resource.save(bytes, Map.of());
+			final var reloaded = new org.eclipse.emf.ecore.xmi.impl.XMIResourceImpl();
+			reloaded.load(new java.io.ByteArrayInputStream(bytes.toByteArray()), Map.of());
+			final var model = (EGamaModel) reloaded.getContents().get(0);
+			for (final String name : List.of("checks", "explore")) {
+				final var experiment = (EExperiment) findSpecies(model, name);
+				final String source = "model kinds\nglobal {int value <- 1;}\n"
+						+ ModelGenerator.defineExperiment(experiment, null);
+				check(!parser.parse(new StringReader(source)).hasSyntaxErrors(), "Saved experiment has invalid syntax");
+				check(experiment.getGamlCode().contains(name.equals("checks") ? "assert value = 1;" : "method exhaustive;"),
+						"Experiment code lost in XMI");
+				check(source.contains("type:" + ExperimentKind.of(experiment)), "Experiment type lost on generation");
+			}
+			final String body = test.getGamlCode();
+			ExperimentKind.set(test, "batch");
+			check("batch".equals(ExperimentKind.of(test)) && body.equals(test.getGamlCode()),
+					"Changing kind replaced experiment content");
+		} catch (final java.io.IOException error) {
+			throw new AssertionError(error);
+		}
 	}
 
 	private static void classesFromModelVisitor() {
@@ -618,6 +667,7 @@ public final class DescriptionDiagramImporterTest {
 		componentsAndExperiments();
 		sourcePreservation();
 		storedAttributesAreCopied();
+		experimentKindsAndBodies();
 		classesFromModelVisitor();
 		System.out.println("PASS: description-only import, built-in exclusion and explicit overrides, inherited copies, "
 				+ "nested species, inheritance, imports, component bodies/facets, action signatures, experiments, "

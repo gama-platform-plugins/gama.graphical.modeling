@@ -21,6 +21,7 @@ import org.eclipse.emf.common.util.EList;
  *   <li>{@link gama.ui.diagram.metamodel.EExperiment#getDisplayLinks <em>Display Links</em>}</li>
  *   <li>{@link gama.ui.diagram.metamodel.EExperiment#getParameters <em>Parameters</em>}</li>
  *   <li>{@link gama.ui.diagram.metamodel.EExperiment#getMonitors <em>Monitors</em>}</li>
+ *   <li>{@link gama.ui.diagram.metamodel.EExperiment#getGamlCode <em>Gaml Code</em>}</li>
  * </ul>
  *
  * @see gama.ui.diagram.metamodel.GamaPackage#getEExperiment()
@@ -28,6 +29,11 @@ import org.eclipse.emf.common.util.EList;
  * @generated
  */
 public interface EExperiment extends ESpecies {
+	/** Additional experiment declarations, such as test and exploration-method blocks. */
+	String getGamlCode();
+
+	void setGamlCode(String value);
+
 	/**
 	 * Returns the value of the '<em><b>Experiment Link</b></em>' reference.
 	 * <!-- begin-user-doc -->

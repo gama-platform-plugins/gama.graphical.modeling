@@ -75,6 +75,7 @@ import gama.ui.diagram.features.create.CreateBatchExperimentLinkFeature;
 import gama.ui.diagram.features.create.CreateDisplayLinkFeature;
 import gama.ui.diagram.features.create.CreateEquationLinkFeature;
 import gama.ui.diagram.features.create.CreateGuiExperimentLinkFeature;
+import gama.ui.diagram.features.create.CreateTestExperimentLinkFeature;
 import gama.ui.diagram.features.create.CreateInheritingLinkFeature;
 import gama.ui.diagram.features.create.CreatePerceiveLinkFeature;
 import gama.ui.diagram.features.create.CreatePlanLinkFeature;
@@ -286,7 +287,7 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 				new CreateSubGridLinkFeature(this), new CreateInheritingLinkFeature(this),
 				new CreateActionLinkFeature(this), new CreateReflexLinkFeature(this), new CreateAspectLinkFeature(this),
 				new CreateDisplayLinkFeature(this), new CreateBatchExperimentLinkFeature(this),
-				new CreateGuiExperimentLinkFeature(this), new CreatePlanLinkFeature(this),
+				new CreateGuiExperimentLinkFeature(this), new CreateTestExperimentLinkFeature(this), new CreatePlanLinkFeature(this),
 				new CreateTaskLinkFeature(this), new CreateStateLinkFeature(this), new CreateRuleLinkFeature(this),
 				new CreateEquationLinkFeature(this), new CreatePerceiveLinkFeature(this) };
 	}

@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,7 +44,6 @@ import gama.ui.diagram.metamodel.EAction;
 import gama.ui.diagram.metamodel.EActionLink;
 import gama.ui.diagram.metamodel.EAspect;
 import gama.ui.diagram.metamodel.EAspectLink;
-import gama.ui.diagram.metamodel.EBatchExperiment;
 import gama.ui.diagram.metamodel.EChartLayer;
 import gama.ui.diagram.metamodel.EDisplay;
 import gama.ui.diagram.metamodel.EDisplayLink;
@@ -381,6 +379,29 @@ public class ModelGenerator {
 		return model.toString();
 	}
 
+	public static List<EReflexLink> orderedReflexes(final ESpecies species) {
+		final var remaining = new ArrayList<>(species.getReflexLinks());
+		remaining.removeIf(link -> link.getReflex() == null);
+		final List<EReflexLink> result = new ArrayList<>();
+		for (final var link : List.copyOf(remaining)) {
+			if (!"reflex".equals(link.getReflex().getKind())) {
+				result.add(link);
+				remaining.remove(link);
+			}
+		}
+		for (final String name : species.getReflexList()) {
+			final var next = remaining.stream().filter(link -> java.util.Objects.equals(name == null ? "" : name,
+					link.getReflex().getName() == null ? "" : link.getReflex().getName()))
+					.findFirst().orElse(null);
+			if (next != null) {
+				result.add(next);
+				remaining.remove(next);
+			}
+		}
+		result.addAll(remaining);
+		return result;
+	}
+
 	private static String defineSpeciesBody(final ESpecies species, final int level, final String id) {
 		final StringBuilder model = new StringBuilder();
 		for (final EVariable var : species.getVariables()) { model.append(defineVariable(var, level + 1)); }
@@ -393,8 +414,6 @@ public class ModelGenerator {
 		}
 		if (isId) { model.append(EL).append(idT).append(EL); }
 
-		final Map<String, EReflexLink> reflexMap = new Hashtable<>();
-
 		for (final EActionLink link : species.getActionLinks()) {
 			final String idA = ModelStructure.getElementId(link.getAction());
 			isId = idA.equals(id);
@@ -402,25 +421,12 @@ public class ModelGenerator {
 			model.append(defineAction(link, isId ? -1 : level + 1));
 			if (isId) { model.append(EL).append(idA).append(EL); }
 		}
-		for (final EReflexLink link : species.getReflexLinks()) {
-			if (link.getTarget() == null) { continue; }
-			reflexMap.put(link.getTarget().getName(), link);
-		}
-		final List<String> reflexes = new ArrayList<>();
-		if (species.getReflexList().isEmpty() && !reflexMap.isEmpty()) {
-			reflexes.addAll(reflexMap.keySet());
-		} else {
-			reflexes.addAll(species.getReflexList());
-		}
-		for (final String reflex : reflexes) {
-			if (reflexMap.containsKey(reflex)) {
-				idT = ModelStructure.getElementId(reflexMap.get(reflex).getReflex());
-				isId = idT.equals(id);
-				if (isId) { model.append(EL).append(idT).append(EL); }
-				model.append(defineGeneric(reflexMap.get(reflex), isId ? -1 : level + 1));
-				if (isId) { model.append(EL).append(idT).append(EL); }
-
-			}
+		for (final EReflexLink reflex : orderedReflexes(species)) {
+			idT = ModelStructure.getElementId(reflex.getReflex());
+			isId = idT.equals(id);
+			if (isId) { model.append(EL).append(idT).append(EL); }
+			model.append(defineGeneric(reflex, isId ? -1 : level + 1));
+			if (isId) { model.append(EL).append(idT).append(EL); }
 		}
 
 		for (final EStateLink link : species.getStateLinks()) {
@@ -566,6 +572,8 @@ public class ModelGenerator {
 		if (species == null) return "";
 		StringBuilder result = new StringBuilder();
 		final String code = species.getInit();
+		if ((code == null || code.isBlank()) && species.getReflexLinks().stream()
+				.anyMatch(link -> link.getReflex() != null && "init".equals(link.getReflex().getKind()))) return "";
 		String sp = "";
 		for (int i = 0; i < level; i++) { sp += "\t"; }
 		result.append(sp).append("init {").append(EL);
@@ -590,8 +598,8 @@ public class ModelGenerator {
 		StringBuilder sp = new StringBuilder();
 		for (int i = 0; i < level; i++) { sp.append("\t"); }
 		String type = "";
-		if (object instanceof EReflex) {
-			type = "reflex";
+		if (object instanceof EReflex reflex) {
+			type = reflex.getKind();
 		} else if (object instanceof EState) {
 			type = "state";
 		} else if (object instanceof ETask) {
@@ -603,11 +611,15 @@ public class ModelGenerator {
 		} else if (object instanceof EPerceive) {
 			type = "perceive";
 		} else if (object instanceof ERule) { type = "rule"; }
-		result.append(type).append(" ").append(manageName(link.getTarget().getName()));
+		result.append(type);
+		if (object.getName() != null && !object.getName().isBlank()) {
+			result.append(" ").append(manageName(object.getName()));
+		}
 		for (final EFacet facet : object.getFacets()) {
 			if (facet.getValue().replace(" ", "").isEmpty()) { continue; }
 			result.append(" ").append(facet.getName()).append(":").append(facet.getValue());
 		}
+		if (object instanceof ERule) return result.append(";").append(EL).toString();
 		String code = null;
 		if (object instanceof EReflex) {
 			code = ((EReflex) object).getGamlCode();
@@ -621,7 +633,7 @@ public class ModelGenerator {
 			code = ((EPlan) object).getGamlCode();
 		} else if (object instanceof EPerceive) {
 			code = ((EPerceive) object).getGamlCode();
-		} else if (object instanceof ERule) { code = ((ERule) object).getGamlCode(); }
+		}
 		result.append(" {").append(EL);
 		if (code != null && !code.isEmpty()) { result.append(code); }
 
@@ -715,38 +727,24 @@ public class ModelGenerator {
 	 * @return the string
 	 */
 	static String defineExperiment(final EExperiment exp, final String id) {
-		String model = "";
-		if (exp == null) return model;
-		if (exp instanceof EBatchExperiment) {
-			model += EL + EL + "experiment \"" + exp.getName() + "\" type:batch ";
-			for (final EFacet facet : exp.getFacets()) {
-				if (facet.getValue().replace(" ", "").isEmpty()) { continue; }
-				model += " " + facet.getName() + ":" + facet.getValue();
-			}
-
-			model += " {" + EL;
-			model += defineSpeciesBody(exp, 0, id);
-			for (final EParameter link : exp.getParameters()) { model += defineParameter(link); }
-			if (!exp.getMonitors().isEmpty()) {
-				model += "\toutput{" + EL;
-				for (final EMonitor mon : exp.getMonitors()) { model += defineMonitor(mon); }
-				model += "\t}" + EL;
-			}
-
-			model += EL + "}" + EL;
-
-		} else {
-			model += EL + EL + "experiment \"" + exp.getName() + "\" type:gui ";
-			for (final EFacet facet : exp.getFacets()) {
-				if (facet.getValue().replace(" ", "").isEmpty()) { continue; }
-				model += " " + facet.getName() + ":" + facet.getValue();
-			}
-
-			model += " {" + EL;
-			model += defineSpeciesBody(exp, 0, id);
-
-			for (final EParameter link : exp.getParameters()) { model += defineParameter(link); }
-
+		if (exp == null) return "";
+		final String kind = ExperimentKind.of(exp);
+		String model = EL + EL + "experiment " + gama.api.utils.StringUtils.toGamlString(exp.getName())
+				+ " type:" + kind + " ";
+		for (final EFacet facet : exp.getFacets()) {
+			if ("type".equals(facet.getName()) || facet.getValue() == null || facet.getValue().isBlank()) continue;
+			model += " " + facet.getName() + ":" + facet.getValue();
+		}
+		if (!exp.getSkills().isEmpty() && exp.getFacets().stream().noneMatch(f -> "skills".equals(f.getName()))) {
+			model += " skills:" + exp.getSkills();
+		}
+		if (exp.getInheritsFrom() != null && exp.getFacets().stream().noneMatch(f -> "parent".equals(f.getName()))) {
+			model += " parent:" + exp.getInheritsFrom().getName();
+		}
+		model += " {" + EL + defineSpeciesBody(exp, 0, id);
+		if (exp.getGamlCode() != null) model += exp.getGamlCode();
+		for (final EParameter parameter : exp.getParameters()) model += defineParameter(parameter);
+		if ("gui".equals(kind) || !exp.getMonitors().isEmpty() || !exp.getDisplayLinks().isEmpty()) {
 			model += "\toutput{";
 			for (final EMonitor mon : exp.getMonitors()) { model += defineMonitor(mon); }
 			for (final EDisplayLink link : exp.getDisplayLinks()) {
@@ -757,10 +755,9 @@ public class ModelGenerator {
 				if (isId) { model += EL + idA + EL; }
 
 			}
-			model += EL + "\t}" + EL + "}" + EL;
+			model += EL + "\t}" + EL;
 		}
-		return model;
-
+		return model + "}" + EL;
 	}
 
 	/**
@@ -772,19 +769,32 @@ public class ModelGenerator {
 	 */
 	static String defineParameter(final EParameter par) {
 		if (par == null) return "";
-		StringBuilder parStr = new StringBuilder("\tparameter");
-		parStr.append("\"").append(par.getName()).append("\"");
+		StringBuilder parStr = new StringBuilder("\tparameter ");
+		parStr.append(gama.api.utils.StringUtils.toGamlString(par.getName()));
 		parStr.append(" var:").append(par.getVariable());
-		if (par.getCategory() != null && !par.getCategory().isEmpty()) {
-			parStr.append(" category: \"").append(par.getCategory()).append("\"");
+		for (final var facet : parameterFacets(par).entrySet()) {
+			parStr.append(" ").append("init".equals(facet.getKey()) ? "<-" : facet.getKey() + ":")
+					.append(facet.getValue());
 		}
-		if (par.getAmong() != null && !par.getAmong().isEmpty()) { parStr.append(" among:").append(par.getAmong()); }
-		if (par.getInit() != null && !par.getInit().isEmpty()) { parStr.append(" <-").append(par.getInit()); }
-		if (par.getMin() != null && !par.getMin().isEmpty()) { parStr.append(" min:").append(par.getMin()); }
-		if (par.getMax() != null && !par.getMax().isEmpty()) { parStr.append(" max:").append(par.getMax()); }
-		if (par.getStep() != null && !par.getStep().isEmpty()) { parStr.append(" step:").append(par.getStep()); }
 		parStr.append(";").append(EL);
 		return parStr.toString();
+	}
+
+	public static java.util.Map<String, String> parameterFacets(final EParameter parameter) {
+		final var facets = new java.util.LinkedHashMap<String, String>();
+		facets.put("init", parameter.getInit());
+		facets.put("min", parameter.getMin());
+		facets.put("max", parameter.getMax());
+		facets.put("step", parameter.getStep());
+		facets.put("among", parameter.getAmong());
+		if (parameter.getCategory() != null && !parameter.getCategory().isBlank()) {
+			facets.put("category", gama.api.utils.StringUtils.toGamlString(parameter.getCategory()));
+		}
+		for (final var facet : parameter.getFacets()) {
+			if (!List.of("name", "var").contains(facet.getName())) facets.put(facet.getName(), facet.getValue());
+		}
+		facets.values().removeIf(value -> value == null || value.isBlank());
+		return facets;
 	}
 
 	/**
@@ -797,8 +807,12 @@ public class ModelGenerator {
 	static String defineMonitor(final EMonitor mon) {
 		if (mon == null) return "";
 		StringBuilder parStr = new StringBuilder("\t\tmonitor ");
-		parStr.append("\"").append(mon.getName()).append("\"");
+		parStr.append(gama.api.utils.StringUtils.toGamlString(mon.getName()));
 		if (mon.getValue() != null && !mon.getValue().isEmpty()) { parStr.append(" value:").append(mon.getValue()); }
+		for (final var facet : mon.getFacets()) {
+			if (List.of("name", "value").contains(facet.getName()) || facet.getValue() == null || facet.getValue().isBlank()) continue;
+			parStr.append(" ").append(facet.getName()).append(":").append(facet.getValue());
+		}
 		parStr.append(";").append(EL);
 		return parStr.toString();
 	}
@@ -971,6 +985,11 @@ public class ModelGenerator {
 			model += " {" + EL;
 			final int level = 1;
 			for (final EVariable var : worldAgent.getVariables()) { model += defineVariable(var, level); }
+			final String worldId = ModelStructure.getElementId(worldAgent);
+			final boolean isWorldId = worldId.equals(id);
+			if (isWorldId) { model += EL + worldId + EL; }
+			model += defineInit(worldAgent, isWorldId ? -1 : 1);
+			if (isWorldId) { model += EL + worldId + EL; }
 
 			for (final EActionLink link : worldAgent.getActionLinks()) {
 				final String idA = ModelStructure.getElementId(link.getAction());
@@ -979,25 +998,12 @@ public class ModelGenerator {
 				model += defineAction(link, isId ? -1 : level);
 				if (isId) { model += EL + idA + EL; }
 			}
-			final Map<String, EReflexLink> reflexMap = new Hashtable<>();
-			for (final EReflexLink link : worldAgent.getReflexLinks()) {
-				if (link.getTarget() == null) { continue; }
-				reflexMap.put(link.getTarget().getName(), link);
-			}
-			final List<String> reflexes = new ArrayList<>();
-			if (worldAgent.getReflexList().isEmpty() && !reflexMap.isEmpty()) {
-				reflexes.addAll(reflexMap.keySet());
-			} else {
-				reflexes.addAll(worldAgent.getReflexList());
-			}
-			for (final String reflex : reflexes) {
-				if (reflexMap.containsKey(reflex)) {
-					final String idT = ModelStructure.getElementId(reflexMap.get(reflex).getReflex());
-					final boolean isId = idT.equals(id);
-					if (isId) { model += EL + idT + EL; }
-					model += defineGeneric(reflexMap.get(reflex), isId ? -1 : level);
-					if (isId) { model += EL + idT + EL; }
-				}
+			for (final EReflexLink reflex : orderedReflexes(worldAgent)) {
+				final String idT = ModelStructure.getElementId(reflex.getReflex());
+				final boolean isId = idT.equals(id);
+				if (isId) { model += EL + idT + EL; }
+				model += defineGeneric(reflex, isId ? -1 : level);
+				if (isId) { model += EL + idT + EL; }
 			}
 
 			for (final EStateLink link : worldAgent.getStateLinks()) {
@@ -1052,12 +1058,6 @@ public class ModelGenerator {
 				model += defineAspect(link, isId ? -1 : level);
 				if (isId) { model += EL + idT + EL; }
 			}
-			final String idT = ModelStructure.getElementId(worldAgent);
-			final boolean isId = idT.equals(id);
-			if (isId) { model += EL + idT + EL; }
-			model += defineInit(worldAgent, isId ? -1 : 1);
-			if (isId) { model += EL + idT + EL; }
-
 			model += "}";
 			model += EL;
 			for (final ESubSpeciesLink link : worldAgent.getMicroSpeciesLinks()) {

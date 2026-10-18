@@ -16,6 +16,7 @@ import org.eclipse.graphiti.services.Graphiti;
 import org.eclipse.xtext.parser.IParser;
 
 import gama.ui.diagram.metamodel.GamaPackage;
+import gama.ui.diagram.metamodel.EExperiment;
 import gama.ui.diagram.metamodel.ESpecies;
 import gama.ui.diagram.metamodel.EWorldAgent;
 import gama.ui.diagram.features.modelgeneration.DescriptionDiagramImporterTest;
@@ -81,9 +82,15 @@ public final class DiagramWizardSourceTest {
 		final String original = ModelGenerator.generateModel(fp, diagram, null);
 		for (final var shape : diagram.getChildren()) {
 			if (!(fp.getBusinessObjectForPictogramElement(shape) instanceof ESpecies species)) continue;
-			final var draft = species instanceof EWorldAgent world
-					? SpeciesWizardAdapter.modelSnapshot(diagram, world) : SpeciesWizardAdapter.snapshot(species);
-			final String source = SpeciesWizardAdapter.candidateModel(fp, diagram, species, null, draft);
+			final String source;
+			if (species instanceof EExperiment experiment) {
+				source = ExperimentWizardAdapter.candidateModel(fp, diagram, experiment, null,
+						ExperimentWizardAdapter.snapshot(experiment));
+			} else {
+				final var draft = species instanceof EWorldAgent world
+						? SpeciesWizardAdapter.modelSnapshot(diagram, world) : SpeciesWizardAdapter.snapshot(species);
+				source = SpeciesWizardAdapter.candidateModel(fp, diagram, species, null, draft);
+			}
 			if (args.length > outputIndex) {
 				Files.writeString(Path.of(args[outputIndex], "preview-" + previews + ".gaml"), source);
 			}

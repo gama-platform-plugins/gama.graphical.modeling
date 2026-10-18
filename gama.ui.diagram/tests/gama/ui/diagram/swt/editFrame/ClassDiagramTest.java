@@ -302,6 +302,33 @@ public final class ClassDiagramTest {
 				});
 		check(behavior.getDoubleClickFeature(actionClick) instanceof gama.ui.diagram.features.edit.EditActionFeature,
 				"Action double-click is not wired to shared wizard feature");
+		final var experiments = palette.stream().filter(c -> "Experiments".equals(c.getLabel())).findFirst().orElseThrow();
+		check(experiments.getToolEntries().stream().anyMatch(tool -> tool.getLabel().contains("TEST experiment")),
+				"Test experiment is missing from the actual palette");
+		for (final var object : List.of(GamaFactory.eINSTANCE.createEReflex(), GamaFactory.eINSTANCE.createEState(),
+				GamaFactory.eINSTANCE.createETask(), GamaFactory.eINSTANCE.createEPlan(),
+				GamaFactory.eINSTANCE.createEPerceive(), GamaFactory.eINSTANCE.createERule(),
+				GamaFactory.eINSTANCE.createEGUIExperiment(), GamaFactory.eINSTANCE.createEBatchExperiment())) {
+			final var shape = Graphiti.getPeCreateService().createContainerShape(diagram, true);
+			final var objectLink = PictogramsFactory.eINSTANCE.createPictogramLink();
+			objectLink.getBusinessObjects().add(object);
+			shape.setLink(objectLink);
+			diagram.getPictogramLinks().add(objectLink);
+			final var click = (org.eclipse.graphiti.features.context.IDoubleClickContext) Proxy.newProxyInstance(
+					org.eclipse.graphiti.features.context.IDoubleClickContext.class.getClassLoader(),
+					new Class<?>[] { org.eclipse.graphiti.features.context.IDoubleClickContext.class },
+					(proxy, method, arguments) -> {
+						if ("getPictogramElements".equals(method.getName())) return new PictogramElement[] { shape };
+						throw new UnsupportedOperationException(method.getName());
+					});
+			final var feature = behavior.getDoubleClickFeature(click);
+			check(object instanceof gama.ui.diagram.metamodel.EExperiment
+					? feature instanceof gama.ui.diagram.features.edit.EditExperimentFeature
+					: feature instanceof gama.ui.diagram.features.edit.EditBehaviorFeature,
+					"Double-click does not open shared wizard: " + object.eClass().getName());
+			check(feature.canExecute(new org.eclipse.graphiti.features.context.impl.CustomContext(
+					new PictogramElement[] { shape })), "Shared edit feature rejects its own node type");
+		}
 		final var delete = new org.eclipse.graphiti.features.context.impl.DeleteContext(classAnchor.getParent());
 		check(provider.getDeleteFeature(delete) instanceof gama.ui.diagram.features.others.CustomDeleteFeature
 				&& provider.getDeleteFeature(delete).canDelete(delete), "Class deletion is unavailable");

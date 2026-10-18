@@ -796,6 +796,10 @@ public class GamaPackageImpl extends EPackageImpl implements GamaPackage {
 		return (EReference)eReflexEClass.getEStructuralFeatures().get(1);
 	}
 
+	public EAttribute getEReflex_Kind() {
+		return (EAttribute)eReflexEClass.getEStructuralFeatures().get(2);
+	}
+
 	/**
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -839,6 +843,10 @@ public class GamaPackageImpl extends EPackageImpl implements GamaPackage {
 	 */
 	public EReference getEExperiment_Monitors() {
 		return (EReference)eExperimentEClass.getEStructuralFeatures().get(3);
+	}
+
+	public EAttribute getEExperiment_GamlCode() {
+		return (EAttribute)eExperimentEClass.getEStructuralFeatures().get(4);
 	}
 
 	/**
@@ -2186,12 +2194,14 @@ public class GamaPackageImpl extends EPackageImpl implements GamaPackage {
 		eReflexEClass = createEClass(EREFLEX);
 		createEAttribute(eReflexEClass, EREFLEX__GAML_CODE);
 		createEReference(eReflexEClass, EREFLEX__REFLEX_LINKS);
+		createEAttribute(eReflexEClass, EREFLEX__KIND);
 
 		eExperimentEClass = createEClass(EEXPERIMENT);
 		createEReference(eExperimentEClass, EEXPERIMENT__EXPERIMENT_LINK);
 		createEReference(eExperimentEClass, EEXPERIMENT__DISPLAY_LINKS);
 		createEReference(eExperimentEClass, EEXPERIMENT__PARAMETERS);
 		createEReference(eExperimentEClass, EEXPERIMENT__MONITORS);
+		createEAttribute(eExperimentEClass, EEXPERIMENT__GAML_CODE);
 
 		eguiExperimentEClass = createEClass(EGUI_EXPERIMENT);
 
@@ -2481,12 +2491,14 @@ public class GamaPackageImpl extends EPackageImpl implements GamaPackage {
 		initEClass(eReflexEClass, EReflex.class, "EReflex", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 		initEAttribute(getEReflex_GamlCode(), ecorePackage.getEString(), "gamlCode", null, 0, 1, EReflex.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEReference(getEReflex_ReflexLinks(), this.getEReflexLink(), null, "reflexLinks", null, 0, -1, EReflex.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEAttribute(getEReflex_Kind(), ecorePackage.getEString(), "kind", "reflex", 0, 1, EReflex.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(eExperimentEClass, EExperiment.class, "EExperiment", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 		initEReference(getEExperiment_ExperimentLink(), this.getEExperimentLink(), null, "experimentLink", null, 0, 1, EExperiment.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEReference(getEExperiment_DisplayLinks(), this.getEDisplayLink(), null, "displayLinks", null, 0, -1, EExperiment.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEReference(getEExperiment_Parameters(), this.getEParameter(), null, "parameters", null, 0, -1, EExperiment.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEReference(getEExperiment_Monitors(), this.getEMonitor(), null, "monitors", null, 0, -1, EExperiment.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEAttribute(getEExperiment_GamlCode(), ecorePackage.getEString(), "gamlCode", null, 0, 1, EExperiment.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(eguiExperimentEClass, EGUIExperiment.class, "EGUIExperiment", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 
@@ -2514,7 +2526,7 @@ public class GamaPackageImpl extends EPackageImpl implements GamaPackage {
 		initEReference(getEReflexLink_Species(), this.getESpecies(), null, "species", null, 0, 1, EReflexLink.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(eDisplayLinkEClass, EDisplayLink.class, "EDisplayLink", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-		initEReference(getEDisplayLink_Experiment(), this.getEGUIExperiment(), null, "experiment", null, 0, 1, EDisplayLink.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEReference(getEDisplayLink_Experiment(), this.getEExperiment(), null, "experiment", null, 0, 1, EDisplayLink.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEReference(getEDisplayLink_Display(), this.getEDisplay(), null, "display", null, 0, 1, EDisplayLink.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(eDisplayEClass, EDisplay.class, "EDisplay", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);

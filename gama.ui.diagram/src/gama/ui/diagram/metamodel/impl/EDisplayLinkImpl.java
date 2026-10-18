@@ -15,7 +15,7 @@ import org.eclipse.emf.ecore.impl.ENotificationImpl;
 
 import gama.ui.diagram.metamodel.EDisplay;
 import gama.ui.diagram.metamodel.EDisplayLink;
-import gama.ui.diagram.metamodel.EGUIExperiment;
+import gama.ui.diagram.metamodel.EExperiment;
 import gama.ui.diagram.metamodel.GamaPackage;
 
 /**
@@ -41,7 +41,7 @@ public class EDisplayLinkImpl extends EGamaLinkImpl implements EDisplayLink {
 	 * @generated
 	 * @ordered
 	 */
-	protected EGUIExperiment experiment;
+	protected EExperiment experiment;
 
 	/**
 	 * The cached value of the '{@link #getDisplay() <em>Display</em>}' reference.
@@ -77,10 +77,10 @@ public class EDisplayLinkImpl extends EGamaLinkImpl implements EDisplayLink {
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	public EGUIExperiment getExperiment() {
+	public EExperiment getExperiment() {
 		if (experiment != null && experiment.eIsProxy()) {
 			InternalEObject oldExperiment = (InternalEObject)experiment;
-			experiment = (EGUIExperiment)eResolveProxy(oldExperiment);
+			experiment = (EExperiment)eResolveProxy(oldExperiment);
 			if (experiment != oldExperiment) {
 				if (eNotificationRequired())
 					eNotify(new ENotificationImpl(this, Notification.RESOLVE, GamaPackage.EDISPLAY_LINK__EXPERIMENT, oldExperiment, experiment));
@@ -94,7 +94,7 @@ public class EDisplayLinkImpl extends EGamaLinkImpl implements EDisplayLink {
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	public EGUIExperiment basicGetExperiment() {
+	public EExperiment basicGetExperiment() {
 		return experiment;
 	}
 
@@ -103,8 +103,8 @@ public class EDisplayLinkImpl extends EGamaLinkImpl implements EDisplayLink {
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	public void setExperiment(EGUIExperiment newExperiment) {
-		EGUIExperiment oldExperiment = experiment;
+	public void setExperiment(EExperiment newExperiment) {
+		EExperiment oldExperiment = experiment;
 		experiment = newExperiment;
 		if (eNotificationRequired())
 			eNotify(new ENotificationImpl(this, Notification.SET, GamaPackage.EDISPLAY_LINK__EXPERIMENT, oldExperiment, experiment));
@@ -175,7 +175,7 @@ public class EDisplayLinkImpl extends EGamaLinkImpl implements EDisplayLink {
 	public void eSet(int featureID, Object newValue) {
 		switch (featureID) {
 			case GamaPackage.EDISPLAY_LINK__EXPERIMENT:
-				setExperiment((EGUIExperiment)newValue);
+				setExperiment((EExperiment)newValue);
 				return;
 			case GamaPackage.EDISPLAY_LINK__DISPLAY:
 				setDisplay((EDisplay)newValue);
@@ -193,7 +193,7 @@ public class EDisplayLinkImpl extends EGamaLinkImpl implements EDisplayLink {
 	public void eUnset(int featureID) {
 		switch (featureID) {
 			case GamaPackage.EDISPLAY_LINK__EXPERIMENT:
-				setExperiment((EGUIExperiment)null);
+				setExperiment((EExperiment)null);
 				return;
 			case GamaPackage.EDISPLAY_LINK__DISPLAY:
 				setDisplay((EDisplay)null);

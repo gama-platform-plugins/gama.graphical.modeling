@@ -5,10 +5,8 @@ import org.eclipse.graphiti.ui.platform.AbstractImageProvider;
 
 import gama.ui.diagram.metamodel.EAction;
 import gama.ui.diagram.metamodel.EAspect;
-import gama.ui.diagram.metamodel.EBatchExperiment;
 import gama.ui.diagram.metamodel.EDisplay;
 import gama.ui.diagram.metamodel.EEquation;
-import gama.ui.diagram.metamodel.EGUIExperiment;
 import gama.ui.diagram.metamodel.EGamaObject;
 import gama.ui.diagram.metamodel.EGrid;
 import gama.ui.diagram.metamodel.EPerceive;
@@ -33,8 +31,11 @@ public class GamaImageProvider extends AbstractImageProvider {
     public static final String IMG_ACTIONLINK= PREFIX + "actionlink";
     public static final String IMG_ASPECTLINK= PREFIX + "aspectlink";
     public static final String IMG_REFLEXLINK= PREFIX + "reflexlink";
+    public static final String IMG_INIT = PREFIX + "init";
+    public static final String IMG_ABORT = PREFIX + "abort";
     public static final String IMG_GUIXPLINK= PREFIX + "guixplink";
     public static final String IMG_BATCHXPLINK= PREFIX + "batchxplink";
+    public static final String IMG_TESTXPLINK= PREFIX + "testxplink";
     public static final String IMG_DISPLAYLINK= PREFIX + "displaylink";
     public static final String IMG_INHERITINGLINK= PREFIX + "inheritinglink";
     public static final String IMG_EQUATION= PREFIX + "equationlink";
@@ -62,8 +63,11 @@ public class GamaImageProvider extends AbstractImageProvider {
         addOutlineImage(IMG_ACTIONLINK, "action");
         addOutlineImage(IMG_ASPECTLINK, "aspect");
         addOutlineImage(IMG_REFLEXLINK, "reflex");
+        addOutlineImage(IMG_INIT, "init");
+        addOutlineImage(IMG_ABORT, "abort");
         addOutlineImage(IMG_GUIXPLINK, "gui");
         addOutlineImage(IMG_BATCHXPLINK, "batch");
+        addOutlineImage(IMG_TESTXPLINK, "test");
         addOutlineImage(IMG_DISPLAYLINK, "display");
         addOutlineImage(IMG_INHERITINGLINK, "hierarchy");
         addOutlineImage(IMG_EQUATION, "equation");
@@ -98,12 +102,23 @@ public class GamaImageProvider extends AbstractImageProvider {
         if (object instanceof EWorldAgent) return IMG_WORLD;
         if (object instanceof EGrid) return IMG_SUBGRIDLINK;
         if (object instanceof EClassSpecies) return IMG_CLASS;
-        if (object instanceof EGUIExperiment) return IMG_GUIXPLINK;
-        if (object instanceof EBatchExperiment) return IMG_BATCHXPLINK;
+        if (object instanceof gama.ui.diagram.metamodel.EExperiment experiment) {
+            return switch (gama.ui.diagram.features.modelgeneration.ExperimentKind.of(experiment)) {
+                case "test" -> IMG_TESTXPLINK;
+                case "batch" -> IMG_BATCHXPLINK;
+                default -> IMG_GUIXPLINK;
+            };
+        }
         if (object instanceof ESpecies) return IMG_SUBSPECIESLINK;
         if (object instanceof EAction) return IMG_ACTIONLINK;
         if (object instanceof EAspect) return IMG_ASPECTLINK;
-        if (object instanceof EReflex) return IMG_REFLEXLINK;
+        if (object instanceof EReflex reflex) {
+            return switch (reflex.getKind()) {
+                case "init" -> IMG_INIT;
+                case "abort" -> IMG_ABORT;
+                default -> IMG_REFLEXLINK;
+            };
+        }
         if (object instanceof EDisplay) return IMG_DISPLAYLINK;
         if (object instanceof EEquation) return IMG_EQUATION;
         if (object instanceof EPerceive) return IMG_PERCEIPT;

@@ -35,11 +35,20 @@ public final class NewElementAppearanceTest {
 			final var fp = new GamaFeatureProvider(type);
 			provider[0] = fp;
 			final var declaration = factory.createEClassSpecies();
+			final var testExperiment = factory.createEGUIExperiment();
+			ExperimentKind.set(testExperiment, "test");
+			final var legacyGuiExperiment = factory.createEBatchExperiment();
+			ExperimentKind.set(legacyGuiExperiment, "gui");
+			final var init = factory.createEReflex();
+			init.setKind("init");
+			final var abort = factory.createEReflex();
+			abort.setKind("abort");
 			for (final var object : List.of(declaration, factory.createESpecies(), factory.createEGrid(),
 					factory.createEWorldAgent(), factory.createEAction(), factory.createEReflex(),
 					factory.createEAspect(), factory.createEEquation(), factory.createEPerceive(),
 					factory.createEPlan(), factory.createERule(), factory.createEState(), factory.createETask(),
-					factory.createEDisplay(), factory.createEGUIExperiment(), factory.createEBatchExperiment())) {
+					factory.createEDisplay(), factory.createEGUIExperiment(), factory.createEBatchExperiment(),
+					testExperiment, legacyGuiExperiment, init, abort)) {
 				object.setName("short");
 				final var context = new AddContext();
 				context.setNewObject(object);
@@ -47,6 +56,11 @@ public final class NewElementAppearanceTest {
 				context.setLocation(60, 80);
 				final var shape = (org.eclipse.graphiti.mm.pictograms.ContainerShape) fp.getAddFeature(context).add(context);
 				final var box = shape.getGraphicsAlgorithm();
+				if (shape.getChildren().stream().noneMatch(child ->
+						child.getGraphicsAlgorithm() instanceof org.eclipse.graphiti.mm.algorithms.Image icon
+						&& gama.ui.diagram.swt.image.GamaImageProvider.nodeImageId(object).equals(icon.getId()))) {
+					throw new AssertionError("New element has the wrong semantic icon: " + object.eClass().getName());
+				}
 				if (box.getHeight() != 50) throw new AssertionError(object.eClass().getName() + " retains oversized default: " + box.getHeight());
 				final int width = box.getWidth();
 				if (LayoutCommonFeature.layout(shape, diagram, object, true) || box.getWidth() != width) {
@@ -98,7 +112,18 @@ public final class NewElementAppearanceTest {
 			if (RelationStyle.isCurrent(connection)) throw new AssertionError("Class color change not detected");
 			RelationStyle.apply(diagram, connection);
 			if (!RelationStyle.isCurrent(connection)) throw new AssertionError("Class relation color update failed");
-			System.out.println("PASS: 16 content-sized add features, manual/explicit sizing, class relation color and color updates");
+			final var lifecycle = factory.createEReflexLink();
+			lifecycle.setReflex(init);
+			link.getBusinessObjects().set(0, lifecycle);
+			RelationStyle.apply(diagram, connection);
+			if (!"has the init".equals(text.getValue())) throw new AssertionError("Init relationship mislabeled");
+			init.setKind("abort");
+			if (RelationStyle.isCurrent(connection)) throw new AssertionError("Lifecycle kind change not detected");
+			RelationStyle.apply(diagram, connection);
+			if (!"has the abort".equals(text.getValue()) || !RelationStyle.isCurrent(connection)) {
+				throw new AssertionError("Lifecycle relationship label not updated");
+			}
+			System.out.println("PASS: 20 content-sized nodes, semantic icons, manual/explicit sizing, relation colors and lifecycle labels");
 		} finally {
 			display.dispose();
 		}

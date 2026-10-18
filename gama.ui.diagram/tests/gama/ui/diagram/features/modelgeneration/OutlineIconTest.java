@@ -27,6 +27,15 @@ public final class OutlineIconTest {
 			if (!(expected.get(i) + ".dark").equals(GamaImageProvider.nodeImageId(nodes.get(i)))) {
 				throw new AssertionError("Incorrect icon for " + nodes.get(i).eClass().getName());
 			}
+			final var changedKind = factory.createEBatchExperiment();
+			ExperimentKind.set(changedKind, "test");
+			if (!(GamaImageProvider.IMG_TESTXPLINK + ".dark").equals(GamaImageProvider.nodeImageId(changedKind))) {
+				throw new AssertionError("Test experiment keeps legacy batch icon");
+			}
+			ExperimentKind.set(changedKind, "gui");
+			if (!(GamaImageProvider.IMG_GUIXPLINK + ".dark").equals(GamaImageProvider.nodeImageId(changedKind))) {
+				throw new AssertionError("GUI experiment keeps legacy batch icon");
+			}
 		}
 		try (final var jar = new JarFile(args[0])) {
 			final var folder = jar.getJarEntry("icons_svg/light/navigator/files/folder.model.svg");
@@ -39,7 +48,7 @@ public final class OutlineIconTest {
 			}
 			for (final String theme : List.of("light", "dark")) {
 				for (final String name : List.of("model", "species", "grid", "gui", "batch", "action", "aspect",
-						"reflex", "display", "equation", "perceive", "state", "task", "rule", "unknown", "class")) {
+						"reflex", "init", "abort", "display", "equation", "perceive", "state", "task", "rule", "unknown", "class", "test")) {
 					final String path = "icons_svg/" + theme + "/gaml/_" + name + ".svg";
 					final var entry = jar.getJarEntry(path);
 					if (entry == null) throw new AssertionError("Missing outline asset: " + path);
@@ -52,6 +61,6 @@ public final class OutlineIconTest {
 				}
 			}
 		}
-		System.out.println("PASS: 16 semantic node mappings, 32 shared light/dark outline SVGs and palette folder SVG");
+		System.out.println("PASS: 18 semantic node mappings, 38 shared light/dark outline SVGs and palette folder SVG");
 	}
 }

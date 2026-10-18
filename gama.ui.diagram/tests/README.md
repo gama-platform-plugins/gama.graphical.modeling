@@ -143,7 +143,7 @@ survive `.gadl` save/reload, and are included in the generated GAML header.
 Generating a diagram from a GAML document snapshots its recognized model header.
 Documentation and model edits participate in the same undoable transaction.
 
-`OutlineIconTest` checks all 16 node-type mappings and decodes the referenced light/dark SVG assets using SWT. Compile it with the same target classpath and sourcepath as above, then pass the resolved `gama.ui.shared` binary jar:
+`OutlineIconTest` checks node-type mappings, including changed experiment kinds, and decodes the referenced light/dark SVG assets using SWT. Compile it with the same target classpath and sourcepath as above, then pass the resolved `gama.ui.shared` binary jar:
 
 ```sh
 java --enable-native-access=ALL-UNNAMED -cp "$classes:$GAMA_TARGET_CLASSPATH" \
@@ -191,6 +191,67 @@ alongside it for the shared source-backed and standalone-workspace fixtures. As 
 adapter checks, parser/EMF tests and strict compiler-resource doubles do not
 replace testing the shared native dialog in a running GAMA workbench.
 
+## Shared attributes, behaviors and experiments
+
+The attribute editor is `AttributeTable` in the exported shared species-wizard
+package. Species, grids, classes and experiments reuse its ordered rows, type
+choices and inherited/redefined attribute handling rather than separate tables.
+The diagram continues using `SpeciesDraft.Variable` at the adapter boundary.
+
+Reflex, init, abort, state, task, plan, perceive and rule creation/editing now use
+`BehaviorWizard` from `gaml.compiler.ui.wizards.behavior`. Known facets use
+compiler metadata; additional facets stay editable as raw GAML expressions.
+The body-only editor receives the complete copied diagram as context. Rules
+are codeless declarations: legacy body text remains stored but is not generated
+or compiled. Anonymous reflexes are supported without collapsing multiple
+declarations or changing their execution order when one is renamed.
+Equations use a different grammar and retain their existing editor.
+
+The reflex palette tool offers Reflex / Init / Abort; editing any of those nodes
+offers the same selector. Conversion retains the node, links, name, facets and
+body. The additive `EReflex.kind` attribute defaults to `reflex` for older files.
+Lifecycle nodes use their matching outline icons and relationship labels.
+Only cyclic reflexes appear in the species reflex-order table. Import keeps the
+first anonymous unconditional init in the existing owner init field; named,
+conditional and additional init blocks, plus all abort blocks, become nodes.
+Lifecycle execution order and the existing owner init body are preserved.
+Explicit names must be unique across all behavior kinds in the same owner:
+GAMA otherwise replaces the earlier behavior, even when its keyword differs.
+`LifecycleBehaviorTest` covers import, conversion, contexts, undo and XMI.
+
+Experiments use one `ExperimentWizard` from
+`gaml.compiler.ui.wizards.experiment`, with GUI, Batch and Test choices. The
+palette offers each initial choice; the same dialog handles subsequent edits.
+Common facets and type-specific sections reorganize without discarding hidden
+settings. The form also edits attributes, init, parameters and monitors.
+Parameter/monitor titles are plain text at the draft boundary; generators
+escape them as GAML strings. All facet values, including category and unit,
+remain raw expressions. Batch monitors are valid and retained.
+The init body editor receives the actual experiment/model context, with hidden
+boundaries kept outside its editable region.
+
+The explicit `type` facet determines experiment behavior and icon, independently
+of legacy GUI/batch EMF subtypes, so switching type does not replace the linked
+object. The display-link owner reference accepts `EExperiment`, allowing an
+old batch object switched to GUI to use the unchanged display editor.
+Display creation is still restricted to semantic GUI experiments.
+Unmodeled experiment declarations, including test blocks and batch methods,
+are stored in the additive `EExperiment.gamlCode` attribute. Existing feature
+and classifier IDs are unchanged. Type switches retain these declarations and
+existing displays/monitors; the contextual compiler decides compatibility.
+Aspects and display dialogs are not replaced by shared forms.
+
+Both adapters use detached complete-model previews, isolated validation URIs,
+stale-context guards and a single undoable accepted edit. Cancel/no-op edits
+leave the live diagram untouched. Existing full-model errors can prevent a
+changed draft from being accepted, as with the species/action adapters.
+
+`BehaviorWizardAdapterTest` and `ExperimentWizardAdapterTest` cover source
+generation with the real parser, detached create/edit previews, linked member
+identity, undo/redo and XMI. Compile them alongside
+`DescriptionDiagramImporterTest.java` for its source-backed description fixture.
+These tests do not replace live workbench testing of the shared controls.
+
 ## Classes
 
 Classes are stored as `EClassSpecies`, an additive EMF subtype that reuses
@@ -229,7 +290,7 @@ Define Classes recipes and exercises every class preview after XMI save/reload.
 New nodes without an explicit requested size are fitted to their name, icon and
 attributes using the same calculation as **Layout**. Existing manually sized
 nodes are not shrunk by normal updates. `NewElementAppearanceTest` exercises all
-16 node add paths, explicit/manual size preservation, and class ownership color
+16 node add paths plus Test and changed-kind experiments, explicit/manual size preservation, and class ownership color
 updates with real SWT/Graphiti services.
 
 ## Diagram context menu

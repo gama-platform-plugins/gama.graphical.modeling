@@ -714,13 +714,20 @@ public interface GamaPackage extends EPackage {
 	int EREFLEX__REFLEX_LINKS = EGAMA_OBJECT_FEATURE_COUNT + 1;
 
 	/**
-	 * The number of structural features of the '<em>EReflex</em>' class.
+	 * The feature id for the '<em><b>Kind</b></em>' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 * @ordered
 	 */
-	int EREFLEX_FEATURE_COUNT = EGAMA_OBJECT_FEATURE_COUNT + 2;
+	int EREFLEX__KIND = EGAMA_OBJECT_FEATURE_COUNT + 2;
+
+	/**
+	 * The number of structural features of the '<em>EReflex</em>' class.
+	 * @generated
+	 * @ordered
+	 */
+	int EREFLEX_FEATURE_COUNT = EGAMA_OBJECT_FEATURE_COUNT + 3;
 
 	/**
 	 * The meta object id for the '{@link gama.ui.diagram.metamodel.impl.EExperimentImpl <em>EExperiment</em>}' class.
@@ -985,13 +992,16 @@ public interface GamaPackage extends EPackage {
 	int EEXPERIMENT__MONITORS = ESPECIES_FEATURE_COUNT + 3;
 
 	/**
-	 * The number of structural features of the '<em>EExperiment</em>' class.
+	 * The feature id for the '<em><b>Gaml Code</b></em>' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 * @ordered
 	 */
-	int EEXPERIMENT_FEATURE_COUNT = ESPECIES_FEATURE_COUNT + 4;
+	int EEXPERIMENT__GAML_CODE = ESPECIES_FEATURE_COUNT + 4;
+
+	/** The number of structural features of the '<em>EExperiment</em>' class. */
+	int EEXPERIMENT_FEATURE_COUNT = ESPECIES_FEATURE_COUNT + 5;
 
 	/**
 	 * The meta object id for the '{@link gama.ui.diagram.metamodel.impl.EGUIExperimentImpl <em>EGUI Experiment</em>}' class.
@@ -1264,6 +1274,8 @@ public interface GamaPackage extends EPackage {
 	 */
 	int EGUI_EXPERIMENT_FEATURE_COUNT = EEXPERIMENT_FEATURE_COUNT + 0;
 
+	int EGUI_EXPERIMENT__GAML_CODE = EEXPERIMENT__GAML_CODE;
+
 	/**
 	 * The meta object id for the '{@link gama.ui.diagram.metamodel.impl.EBatchExperimentImpl <em>EBatch Experiment</em>}' class.
 	 * <!-- begin-user-doc -->
@@ -1534,6 +1546,8 @@ public interface GamaPackage extends EPackage {
 	 * @ordered
 	 */
 	int EBATCH_EXPERIMENT_FEATURE_COUNT = EEXPERIMENT_FEATURE_COUNT + 0;
+
+	int EBATCH_EXPERIMENT__GAML_CODE = EEXPERIMENT__GAML_CODE;
 
 	/**
 	 * The meta object id for the '{@link gama.ui.diagram.metamodel.impl.EGamaLinkImpl <em>EGama Link</em>}' class.
@@ -4990,6 +5004,8 @@ public interface GamaPackage extends EPackage {
 	 */
 	EReference getEReflex_ReflexLinks();
 
+	EAttribute getEReflex_Kind();
+
 	/**
 	 * Returns the meta object for class '{@link gama.ui.diagram.metamodel.EExperiment <em>EExperiment</em>}'.
 	 * <!-- begin-user-doc -->
@@ -5043,6 +5059,8 @@ public interface GamaPackage extends EPackage {
 	 * @generated
 	 */
 	EReference getEExperiment_Monitors();
+
+	EAttribute getEExperiment_GamlCode();
 
 	/**
 	 * Returns the meta object for class '{@link gama.ui.diagram.metamodel.EGUIExperiment <em>EGUI Experiment</em>}'.
@@ -6972,6 +6990,8 @@ public interface GamaPackage extends EPackage {
 		 */
 		EReference EREFLEX__REFLEX_LINKS = eINSTANCE.getEReflex_ReflexLinks();
 
+		EAttribute EREFLEX__KIND = eINSTANCE.getEReflex_Kind();
+
 		/**
 		 * The meta object literal for the '{@link gama.ui.diagram.metamodel.impl.EExperimentImpl <em>EExperiment</em>}' class.
 		 * <!-- begin-user-doc -->
@@ -7013,6 +7033,8 @@ public interface GamaPackage extends EPackage {
 		 * @generated
 		 */
 		EReference EEXPERIMENT__MONITORS = eINSTANCE.getEExperiment_Monitors();
+
+		EAttribute EEXPERIMENT__GAML_CODE = eINSTANCE.getEExperiment_GamlCode();
 
 		/**
 		 * The meta object literal for the '{@link gama.ui.diagram.metamodel.impl.EGUIExperimentImpl <em>EGUI Experiment</em>}' class.
