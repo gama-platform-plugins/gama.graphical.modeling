@@ -344,6 +344,16 @@ public final class DescriptionDiagramImporterTest {
 		check(node.getRuleLinks().get(0).getRule().getGamlCode().contains("{ brace }"), "Rule body lost");
 		check(ModelGenerator.defineGeneric(node.getRuleLinks().get(0), 1).contains("{ brace }"),
 				"Rule body lost when regenerating GAML");
+		final var virtual = gama.ui.diagram.metamodel.GamaFactory.eINSTANCE.createEFacet();
+		virtual.setName("virtual");
+		virtual.setValue("true");
+		actionNode.getFacets().add(virtual);
+		final String virtualSource = ModelGenerator.defineAction(node.getActionLinks().get(0), 1);
+		check(virtualSource.contains("float calculate(float amount <- 2) virtual:true;")
+				&& !virtualSource.contains("return amount") && !virtualSource.contains("{"),
+				"Virtual action should be a bodyless declaration: " + virtualSource);
+		check(actionNode.getGamlCode().contains("return amount"), "Generating virtual action erased stored code");
+		actionNode.getFacets().remove(virtual);
 		check(node.getReflexList().equals(List.of("reflex_name")), "Reflex execution order not preserved");
 		final EExperiment experiment = (EExperiment) findSpecies(result, "gui");
 		check(experiment.getParameters().size() == 1 && experiment.getVariables().size() == 1

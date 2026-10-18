@@ -20,6 +20,8 @@ import org.eclipse.graphiti.util.ColorConstant;
 import org.eclipse.graphiti.util.IColorConstant;
 
 import gama.ui.diagram.metamodel.EGamaLink;
+import gama.ui.diagram.metamodel.EClassSpecies;
+import gama.ui.diagram.metamodel.ESubSpeciesLink;
 import gama.ui.diagram.metamodel.GamaPackage;
 
 public final class RelationStyle {
@@ -41,6 +43,10 @@ public final class RelationStyle {
 	public static IColorConstant color(final Connection connection) {
 		final Object object = Graphiti.getLinkService().getBusinessObjectForLinkedPictogramElement(connection);
 		if (!(object instanceof EGamaLink)) return ColorDisplay.RELATION_FOREGROUND;
+		if (object instanceof ESubSpeciesLink link && link.getMicro() instanceof EClassSpecies declaration) {
+			return ColorDisplay.nodeTextColor(declaration.getColorPicto().isEmpty()
+					? ColorDisplay.NODE_CLASS : declaration.getColorPicto());
+		}
 		return switch (((EGamaLink) object).eClass().getClassifierID()) {
 			case GamaPackage.ESUB_SPECIES_LINK -> new ColorConstant(143, 106, 47);
 			case GamaPackage.EINHERIT_LINK -> new ColorConstant(109, 86, 145);

@@ -5,6 +5,7 @@ import java.util.List;
 import org.eclipse.graphiti.features.IFeatureProvider;
 import org.eclipse.graphiti.features.context.IAddContext;
 import org.eclipse.graphiti.features.impl.AbstractAddShapeFeature;
+import gama.ui.diagram.features.layout.LayoutCommonFeature;
 import org.eclipse.graphiti.mm.algorithms.Image;
 import org.eclipse.graphiti.mm.algorithms.RoundedRectangle;
 import org.eclipse.graphiti.mm.algorithms.Text;
@@ -108,7 +109,8 @@ public class AddTaskFeature extends AbstractAddShapeFeature {
 		peCreateService.createChopboxAnchor(containerShape);
 
 		// call the layout feature
-		layoutPictogramElement(containerShape);
+		LayoutCommonFeature.layout(containerShape, targetDiagram, addedClass,
+				context.getWidth() <= 0 && context.getHeight() <= 0);
 		return containerShape;
 	}
 }

@@ -155,6 +155,12 @@ public class MyGamaToolBehaviorProvider extends DefaultToolBehaviorProvider {
 			ConnectionCreationToolEntry connectionCreationToolEntry = new ConnectionCreationToolEntry(
 					cf.getCreateName(), cf.getCreateDescription(), cf.getCreateImageId(), cf.getCreateLargeImageId());
 			connectionCreationToolEntry.addCreateConnectionFeature(cf);
+			if (cf instanceof CreateActionLinkFeature) {
+				final var classAction = new ConnectionCreationToolEntry(cf.getCreateName(), cf.getCreateDescription(),
+						cf.getCreateImageId(), cf.getCreateLargeImageId());
+				classAction.addCreateConnectionFeature(cf);
+				compartmentClasses.addToolEntry(classAction);
+			}
 			if (cf instanceof CreateClassLinkFeature || cf instanceof CreateClassInheritingLinkFeature) {
 				compartmentClasses.addToolEntry(connectionCreationToolEntry);
 			} else if (cf instanceof CreateSubSpeciesLinkFeature || cf instanceof CreateSubGridLinkFeature

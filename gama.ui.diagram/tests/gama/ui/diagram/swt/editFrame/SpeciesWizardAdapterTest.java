@@ -26,11 +26,43 @@ import gaml.compiler.ui.wizards.species.SpeciesDraft.Facet;
 import gaml.compiler.ui.wizards.species.SpeciesDraft.Variable;
 
 public final class SpeciesWizardAdapterTest {
+	static void initializeWorkspace() {
+		if (gama.api.GAMA.getWorkspaceManager() != null) return;
+		final var workspace = Proxy.newProxyInstance(org.eclipse.core.resources.IWorkspace.class.getClassLoader(),
+				new Class<?>[] { org.eclipse.core.resources.IWorkspace.class }, (proxy, method, arguments) -> {
+					if ("addResourceChangeListener".equals(method.getName())) return null;
+					throw new UnsupportedOperationException(method.getName());
+				});
+		gama.api.GAMA.setWorkspaceManager((gama.api.runtime.IWorkspaceManager) Proxy.newProxyInstance(
+				gama.api.runtime.IWorkspaceManager.class.getClassLoader(),
+				new Class<?>[] { gama.api.runtime.IWorkspaceManager.class }, (proxy, method, arguments) -> {
+					if ("getWorkspace".equals(method.getName())) return workspace;
+					throw new UnsupportedOperationException(method.getName());
+				}));
+		final var mapType = gama.api.gaml.types.Types.MAP;
+		try {
+			if (mapType == null) {
+				gama.api.gaml.types.Types.MAP = (gama.api.gaml.types.IContainerType) Proxy.newProxyInstance(
+						gama.api.gaml.types.IContainerType.class.getClassLoader(),
+						new Class<?>[] { gama.api.gaml.types.IContainerType.class }, (proxy, method, arguments) -> {
+							if ("of".equals(method.getName())) return proxy;
+							throw new UnsupportedOperationException(method.getName());
+						});
+			}
+			Class.forName("gaml.compiler.indexer.GamlResourceIndexer");
+		} catch (final ClassNotFoundException error) {
+			throw new AssertionError(error);
+		} finally {
+			gama.api.gaml.types.Types.MAP = mapType;
+		}
+	}
+
 	private static void check(final boolean value, final String message) {
 		if (!value) throw new AssertionError(message);
 	}
 
 	public static void main(final String[] args) {
+		initializeWorkspace();
 		final var factory = GamaFactory.eINSTANCE;
 		final var domain = TransactionalEditingDomain.Factory.INSTANCE.createEditingDomain();
 		try {
@@ -77,6 +109,7 @@ public final class SpeciesWizardAdapterTest {
 					shape.setLink(pictogramLink);
 					diagram.getPictogramLinks().add(pictogramLink);
 				}
+
 			});
 			final var initial = SpeciesWizardAdapter.snapshot(species);
 			final var mirrored = new SpeciesDraft("observer", List.of(), List.of(new Facet("mirrors", "animal")),

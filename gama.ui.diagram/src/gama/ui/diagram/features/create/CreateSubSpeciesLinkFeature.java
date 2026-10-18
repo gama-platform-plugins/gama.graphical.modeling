@@ -12,6 +12,7 @@ import org.eclipse.graphiti.features.context.impl.CreateContext;
 import org.eclipse.graphiti.mm.pictograms.Connection;
 import org.eclipse.graphiti.mm.pictograms.PictogramElement;
 import org.eclipse.jface.window.Window;
+import org.eclipse.graphiti.services.Graphiti;
 
 import gama.ui.diagram.editor.GamaDiagramEditor;
 import gama.ui.diagram.features.ExampleUtil;
@@ -75,7 +76,12 @@ public class CreateSubSpeciesLinkFeature extends AbstractCreateSpeciesComponentL
 		cc.setLocation(context.getTargetLocation().getX() - (int)(AddSpeciesFeature.INIT_WIDTH/2.0), context.getTargetLocation().getY() - (int)(AddSpeciesFeature.INIT_HEIGHT/2.0));
 		cc.setSize(0, 0);
 		cc.setTargetContainer(getDiagram());
-		return getFeatureProvider().addIfPossible(new AddContext(cc, species));
+		final var shape = getFeatureProvider().addIfPossible(new AddContext(cc, species));
+		if (shape == null) throw new IllegalStateException("Could not draw the new species or class.");
+		final var box = shape.getGraphicsAlgorithm();
+		Graphiti.getGaService().setLocation(box, context.getTargetLocation().getX() - box.getWidth() / 2,
+				context.getTargetLocation().getY() - box.getHeight() / 2);
+		return shape;
 	}
 	
 	public Connection create(ICreateConnectionContext context) {

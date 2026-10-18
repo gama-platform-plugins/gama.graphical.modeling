@@ -150,6 +150,47 @@ java --enable-native-access=ALL-UNNAMED -cp "$classes:$GAMA_TARGET_CLASSPATH" \
   gama.ui.diagram.features.modelgeneration.OutlineIconTest /path/to/gama.ui.shared.jar
 ```
 
+## Shared action wizard
+
+Action creation from **Agent features** or **Classes**, and double-click editing
+of an action box, use `ActionWizard` from
+`gaml.compiler.ui.wizards.action` in `gama.ui.editor`. Rebuild that bundle along
+with this plugin. The old incremental action frame is no longer used by these
+entry points.
+
+The shared form edits the name, return type (`action` means no return), Virtual,
+ordered arguments (name, type and optional default), and a syntax-highlighted
+GAML body. Registered types and diagram species, grids and classes are offered.
+The declaration header is displayed as a live label above the body-only editor,
+not inside the code box. It follows name, return type, argument and Virtual
+changes. The body editor is disabled for virtual actions without erasing its draft text.
+Virtual declarations generate a semicolon, not an executable body; inactive
+code remains stored in XMI so it can be restored by unchecking Virtual.
+
+`ActionWizardAdapter` builds previews from a complete copied diagram. The
+embedded editor gets the actual owner's context, including model attributes,
+other actions, arguments and the requested return type. Its prefix and suffix
+are split on a unique generated body marker, not source braces or action names.
+Validation uses an isolated `.action-wizard.gaml` URI, preserving relative
+imports without publishing experiment-toolbar state. Existing full-model
+errors can also prevent acceptance; the preview is not a validation bypass.
+
+Cancel and unchanged edits do not mutate the live action. Changed drafts are
+applied in one undoable edit; creation uses Graphiti's existing transaction.
+Stale model changes are rejected before applying the result. Existing actions,
+links, unrelated facets and arguments with unchanged names keep their EMF
+identities. Argument order/defaults, virtual state and inactive body text survive
+save/reload.
+
+`ActionWizardAdapterTest` covers world/species/class creation previews, existing
+grid/experiment action contexts, generated syntax, virtual signatures, body
+contexts, detached previews, XMI, argument/link identity, undo/redo and isolated
+validation-resource and import-edge disposal. Compile
+`DescriptionDiagramImporterTest.java` and `SpeciesWizardAdapterTest.java`
+alongside it for the shared source-backed and standalone-workspace fixtures. As with the other diagram
+adapter checks, parser/EMF tests and strict compiler-resource doubles do not
+replace testing the shared native dialog in a running GAMA workbench.
+
 ## Classes
 
 Classes are stored as `EClassSpecies`, an additive EMF subtype that reuses
@@ -159,10 +200,13 @@ imported from class descriptions (not executable objects), including the model's
 class visitor, and generated as top-level `class` declarations without an agent
 `init` block.
 
-The **Classes** palette compartment offers **has class** and **is parent of**.
+The **Classes** palette compartment offers **has class**, **is parent of** and
+**has the action**. Action creation uses the same service as species and remains
+available in **Agent features** too.
 Only the world can own classes. Class inheritance is class-only, defaults to
 `object`, and excludes self/descendants; species and grids cannot inherit classes
-or `object`. Class boxes use a lavender fill and the shared class outline icon.
+or `object`. Class boxes use a lavender fill and the shared class outline icon;
+ownership links use the matching class foreground hue, including custom colors.
 They open the shared `Kind.CLASS` form: Name, Parent, Virtual and Attributes, with
 local inherited attributes but no agent skills, control or scheduling fields.
 Actions remain separate linked boxes. Other behavior/component creation tools
@@ -181,6 +225,12 @@ shared) and run its standalone main like the other adapter checks.
 Source-backed checks use description doubles, not a full running GAMA
 compiler/runtime. `DiagramWizardSourceTest --source` also accepts the library's
 Define Classes recipes and exercises every class preview after XMI save/reload.
+
+New nodes without an explicit requested size are fitted to their name, icon and
+attributes using the same calculation as **Layout**. Existing manually sized
+nodes are not shrunk by normal updates. `NewElementAppearanceTest` exercises all
+16 node add paths, explicit/manual size preservation, and class ownership color
+updates with real SWT/Graphiti services.
 
 ## Diagram context menu
 

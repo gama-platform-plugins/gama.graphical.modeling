@@ -146,7 +146,8 @@ public class AddGridFeature extends AbstractAddShapeFeature {
 		peCreateService.createChopboxAnchor(containerShape);
 
 		// call the layout feature
-		layoutPictogramElement(containerShape);
+		LayoutCommonFeature.layout(containerShape, targetDiagram, addedClass,
+				context.getWidth() <= 0 && context.getHeight() <= 0);
 		return containerShape;
 	}
 }

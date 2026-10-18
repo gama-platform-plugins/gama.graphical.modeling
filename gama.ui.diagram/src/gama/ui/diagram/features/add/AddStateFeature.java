@@ -7,6 +7,7 @@ import java.util.*;
 import org.eclipse.graphiti.features.IFeatureProvider;
 import org.eclipse.graphiti.features.context.IAddContext;
 import org.eclipse.graphiti.features.impl.AbstractAddShapeFeature;
+import gama.ui.diagram.features.layout.LayoutCommonFeature;
 import org.eclipse.graphiti.mm.algorithms.*;
 import org.eclipse.graphiti.mm.algorithms.styles.*;
 import org.eclipse.graphiti.mm.pictograms.*;
@@ -98,7 +99,8 @@ public class AddStateFeature extends AbstractAddShapeFeature {
 		peCreateService.createChopboxAnchor(containerShape);
 
 		// call the layout feature
-		layoutPictogramElement(containerShape);
+		LayoutCommonFeature.layout(containerShape, targetDiagram, addedClass,
+				context.getWidth() <= 0 && context.getHeight() <= 0);
 		return containerShape;
 	}
 }

@@ -1,8 +1,5 @@
 package gama.ui.diagram.swt.editFrame;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -19,7 +16,6 @@ import org.eclipse.graphiti.mm.pictograms.Anchor;
 import org.eclipse.graphiti.mm.pictograms.Connection;
 import org.eclipse.graphiti.features.context.impl.AddConnectionContext;
 import org.eclipse.graphiti.services.Graphiti;
-import org.eclipse.xtext.resource.SynchronizedXtextResourceSet;
 
 import gama.ui.diagram.features.modelgeneration.ModelGenerator;
 import gama.ui.diagram.metamodel.EFacet;
@@ -31,8 +27,6 @@ import gama.ui.diagram.metamodel.EWorldAgent;
 import gama.ui.diagram.metamodel.EInheritLink;
 import gama.ui.diagram.metamodel.EVariable;
 import gama.ui.diagram.metamodel.GamaFactory;
-import gaml.compiler.resource.GamlResource;
-import gaml.compiler.resource.GamlResourceServices;
 import gaml.compiler.ui.wizards.species.SpeciesDraft;
 import gaml.compiler.ui.wizards.species.SpeciesDraft.Facet;
 import gaml.compiler.ui.wizards.species.SpeciesDraft.Variable;
@@ -441,31 +435,7 @@ public final class SpeciesWizardAdapter {
 		if (gaml.isBlank()) return "The diagram needs a world box before a species can be validated.";
 		final URI base = diagram.eResource().getURI().trimFragment().trimFileExtension();
 		final URI uri = base.appendFileExtension("species-wizard.gaml");
-		final var resources = new SynchronizedXtextResourceSet();
-		resources.setClasspathURIContext(ModelGenerator.class);
-		final var resource = (GamlResource) resources.createResource(uri);
-		try (final var stream = new ByteArrayInputStream(gaml.getBytes(StandardCharsets.UTF_8))) {
-			resource.load(stream, null);
-			if (!resource.getErrors().isEmpty()) return resource.getErrors().get(0).getMessage();
-			resource.getValidationContext().clear();
-			final var description = resource.buildCompleteDescription();
-			try {
-				if (description == null) return "The candidate model could not be described.";
-				final var validated = description.validate();
-				for (final var error : resource.getValidationContext().getInternalErrors()) {
-					if (error.isError()) return error.toString();
-				}
-				return validated == null ? "The candidate model could not be validated." : null;
-			} finally {
-				if (description != null) description.dispose();
-			}
-		} catch (final IOException error) {
-			throw new IllegalStateException("Could not load the candidate species model", error);
-		} finally {
-			GamlResourceServices.discardValidationContext(resource);
-			resource.unload();
-			resources.getResources().clear();
-		}
+		return DiagramDraftValidation.validate(gaml, uri);
 	}
 
 	private static String classDraftError(final ESpecies species, final ESpecies owner, final SpeciesDraft draft) {

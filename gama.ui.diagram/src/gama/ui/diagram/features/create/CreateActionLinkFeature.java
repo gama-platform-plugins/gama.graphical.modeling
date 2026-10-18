@@ -10,37 +10,32 @@
  ********************************************************************************************************/
 package gama.ui.diagram.features.create;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.eclipse.graphiti.features.IFeatureProvider;
-import org.eclipse.graphiti.features.context.IContext;
 import org.eclipse.graphiti.features.context.ICreateConnectionContext;
 import org.eclipse.graphiti.features.context.impl.AddConnectionContext;
 import org.eclipse.graphiti.features.context.impl.AddContext;
 import org.eclipse.graphiti.features.context.impl.CreateContext;
 import org.eclipse.graphiti.mm.pictograms.Connection;
 import org.eclipse.graphiti.mm.pictograms.PictogramElement;
+import org.eclipse.graphiti.services.Graphiti;
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.window.Window;
 
 import gama.ui.diagram.editor.GamaDiagramEditor;
 import gama.ui.diagram.features.ExampleUtil;
-import gama.ui.diagram.features.add.AddActionFeature;
 import gama.ui.diagram.features.modelgeneration.ModelGenerator;
 import gama.ui.diagram.metamodel.EAction;
-import gama.ui.diagram.metamodel.EActionLink;
 import gama.ui.diagram.metamodel.ESpecies;
 import gama.ui.diagram.swt.image.GamaImageProvider;
+import gama.ui.diagram.swt.editFrame.ActionWizardAdapter;
+import gaml.compiler.ui.wizards.action.ActionDraft;
+import gaml.compiler.ui.wizards.action.ActionWizard;
 
 /**
  * The Class CreateActionLinkFeature.
  */
 public class CreateActionLinkFeature extends AbstractCreateSpeciesComponentLinkFeature {
-
-	/** The Constant TITLE. */
-	private static final String TITLE = "Create action";
-
-	/** The Constant USER_QUESTION. */
-	private static final String USER_QUESTION = "Enter new action name";
+	private boolean hasDoneChanges;
 
 	/**
 	 * Instantiates a new creates the action link feature.
@@ -61,32 +56,29 @@ public class CreateActionLinkFeature extends AbstractCreateSpeciesComponentLinkF
 	/**
 	 * Creates the E action.
 	 *
-	 * @param context
-	 *            the context
 	 * @param source
 	 *            the source
 	 * @return the e action
 	 */
-	private EAction createEAction(final ICreateConnectionContext context, final ESpecies source) {
-		String newActionName = ExampleUtil.askString(TITLE, USER_QUESTION, "my_action");
-		if (newActionName == null || newActionName.trim().length() == 0) return null;
-		String initName = newActionName;
-		List<String> names = new ArrayList<>();
-		for (EActionLink li : source.getActionLinks()) { names.add(li.getAction().getName()); }
-		int cpt = 2;
-		while (names.contains(newActionName)) {
-			newActionName = initName + cpt;
-			cpt++;
+	private EAction createEAction(final ESpecies source) {
+		final var editor = ExampleUtil.getDiagramEditor(getFeatureProvider());
+		final var diagram = getDiagram();
+		final String originalSource = ModelGenerator.generateModel(getFeatureProvider(), diagram, null);
+		final var wizard = new ActionWizard(editor.getSite().getShell(), ActionDraft.empty(),
+				draft -> ActionWizardAdapter.validate(getFeatureProvider(), diagram, null, source, draft),
+				ActionWizardAdapter.typeNames(diagram),
+				draft -> ActionWizardAdapter.bodyContext(getFeatureProvider(), diagram, null, source, draft));
+		if (wizard.open() != Window.OK) return null;
+		if (source.eResource() != diagram.eResource()
+				|| !originalSource.equals(ModelGenerator.generateModel(getFeatureProvider(), diagram, null))) {
+			MessageDialog.openError(editor.getSite().getShell(), "Action context changed",
+					"The model changed while the wizard was open. Reopen it before creating the action.");
+			return null;
 		}
 		EAction newAction = gama.ui.diagram.metamodel.GamaFactory.eINSTANCE.createEAction();
 		newAction.setError("");
 		newAction.setHasError(false);
-		this.getDiagram().eResource().getContents().add(newAction);
-		newAction.setName(newActionName);
-		CreateContext ac = new CreateContext();
-		ac.setLocation(context.getTargetLocation().getX(), context.getTargetLocation().getY());
-		ac.setSize(0, 0);
-		ac.setTargetContainer(getDiagram());
+		ActionWizardAdapter.apply(newAction, wizard.getResult());
 		return newAction;
 	}
 
@@ -101,65 +93,41 @@ public class CreateActionLinkFeature extends AbstractCreateSpeciesComponentLinkF
 	 */
 	private PictogramElement addEAction(final ICreateConnectionContext context, final EAction action) {
 		CreateContext cc = new CreateContext();
-		cc.setLocation(context.getTargetLocation().getX() - (int) (AddActionFeature.INIT_WIDTH / 2.0),
-				context.getTargetLocation().getY() - (int) (AddActionFeature.INIT_HEIGHT / 2.0));
+		cc.setLocation(context.getTargetLocation().getX(), context.getTargetLocation().getY());
 		cc.setSize(0, 0);
 		cc.setTargetContainer(getDiagram());
-		return getFeatureProvider().addIfPossible(new AddContext(cc, action));
+		final var shape = getFeatureProvider().addIfPossible(new AddContext(cc, action));
+		if (shape == null) throw new IllegalStateException("Could not draw the new action.");
+		final var box = shape.getGraphicsAlgorithm();
+		Graphiti.getGaService().setLocation(box, context.getTargetLocation().getX() - box.getWidth() / 2,
+				context.getTargetLocation().getY() - box.getHeight() / 2);
+		return shape;
 	}
 
 	@Override
 	public Connection create(final ICreateConnectionContext context) {
-		Connection newConnection = null;
-		ESpecies source = getESpecies(context.getSourceAnchor());
-
-		EAction target = createEAction(context, source);
-		if (source != null && target != null) {
-			PictogramElement targetpe = addEAction(context, target);
-			// create new business object
-			EActionLink eReference = createEReference(source, target);
-			// eReference.setModel(source.getModel());
-			getDiagram().eResource().getContents().add(eReference);
-			// add connection for business object
-			AddConnectionContext addContext = new AddConnectionContext(context.getSourceAnchor(), getAnchor(targetpe));
-			addContext.setNewObject(eReference);
-
-			newConnection = (Connection) getFeatureProvider().addIfPossible(addContext);
-			eReference.setSpecies(source);
-			eReference.setAction(target);
-
-			source.getActionLinks().add(eReference);
-			target.getActionLinks().add(eReference);
-		}
+		hasDoneChanges = false;
+		if (!canCreate(context)) return null;
+		final ESpecies source = getESpecies(context.getSourceAnchor());
+		final EAction target = createEAction(source);
+		if (target == null) return null;
+		final var relation = ActionWizardAdapter.attach(source, target);
+		final var shape = addEAction(context, target);
+		final var addContext = new AddConnectionContext(context.getSourceAnchor(), getAnchor(shape));
+		addContext.setNewObject(relation);
+		final var newConnection = (Connection) getFeatureProvider().addIfPossible(addContext);
+		if (newConnection == null) throw new IllegalStateException("Could not draw the new action link.");
 		GamaDiagramEditor diagramEditor = (GamaDiagramEditor) ExampleUtil.getDiagramEditor(getFeatureProvider());
 		diagramEditor.addEOject(target);
-
+		ModelGenerator.modelValidation(getFeatureProvider(), getDiagram());
+		hasDoneChanges = true;
 		return newConnection;
 	}
 
-	/**
-	 * Creates the E reference.
-	 *
-	 * @param source
-	 *            the source
-	 * @param target
-	 *            the target
-	 * @return the e action link
-	 */
-	private EActionLink createEReference(final ESpecies source, final EAction target) {
-		EActionLink eReference = gama.ui.diagram.metamodel.GamaFactory.eINSTANCE.createEActionLink();
-		eReference.setSource(source);
-		eReference.setTarget(target);
-		return eReference;
-	}
+	@Override
+	public boolean hasDoneChanges() { return hasDoneChanges; }
 
 	@Override
 	public String getCreateImageId() { return GamaImageProvider.IMG_ACTIONLINK; }
-
-	@Override
-	public void execute(final IContext context) {
-		super.execute(context);
-		ModelGenerator.modelValidation(getFeatureProvider(), getDiagram());
-	}
 
 }

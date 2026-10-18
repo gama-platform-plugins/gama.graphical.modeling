@@ -537,7 +537,16 @@ public class ModelGenerator {
 					+ (var.getInit() == null || var.getInit().isEmpty() ? "" : " <- " + var.getInit());
 		}
 		result.append(sp).append(returnType).append(" ").append(manageName(action.getName()))
-				.append("(").append(arguments).append(") {").append(EL);
+				.append("(").append(arguments).append(")");
+		boolean virtual = false;
+		for (final EFacet facet : action.getFacets()) {
+			if (facet.getValue() == null || facet.getValue().isBlank()
+					|| List.of("name", "type", "returns").contains(facet.getName())) continue;
+			result.append(" ").append(facet.getName()).append(":").append(facet.getValue());
+			if ("virtual".equals(facet.getName()) && "true".equals(facet.getValue().trim())) virtual = true;
+		}
+		if (virtual) return result.append(";").append(EL).toString();
+		result.append(" {").append(EL);
 		final String code = action.getGamlCode();
 		if (code != null && !code.isEmpty()) { result.append(code); }
 		result.append(EL).append(sp).append("}").append(EL);

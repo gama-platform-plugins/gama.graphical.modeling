@@ -217,6 +217,10 @@ public final class ClassDiagramTest {
 		create.setSourceAnchor(animalAnchor);
 		create.setTargetAnchor(baseAnchor);
 		check(!new CreateInheritingLinkFeature(fp).canCreate(create), "Species can parent class");
+		create.setSourceAnchor(null);
+		final var actionCreation = new CreateActionLinkFeature(fp);
+		check(actionCreation.create(create) == null && !actionCreation.hasDoneChanges(),
+				"Ineligible action creation reports a change");
 		final var add = new AddContext();
 		add.setNewObject(base);
 		add.setTargetContainer(diagram);
@@ -255,10 +259,20 @@ public final class ClassDiagramTest {
 		final var palette = java.util.Arrays.asList(behavior.getPalette());
 		final var classes = palette.stream().filter(c -> "Classes".equals(c.getLabel())).findFirst().orElseThrow();
 		check(classes.getToolEntries().stream().map(org.eclipse.graphiti.palette.IToolEntry::getLabel).toList()
-				.equals(List.of("has class", "is parent of")), "Classes palette does not contain exactly both class tools");
+				.equals(List.of("has class", "is parent of", "has the action")), "Classes palette is missing its class/action tools");
+		check(palette.stream().filter(c -> "Agent features".equals(c.getLabel())).findFirst().orElseThrow()
+				.getToolEntries().stream().anyMatch(t -> "has the action".equals(t.getLabel())),
+				"Species action creation disappeared from Agent features");
 		check(palette.get(1) == classes, "Classes palette is not after Agents");
 		check(palette.get(0).getToolEntries().stream().noneMatch(t -> "has class".equals(t.getLabel())),
 				"Class creation also appears in Agents");
+		final var actionContext = new CreateConnectionContext();
+		actionContext.setSourceAnchor(classAnchor);
+		check(java.util.Arrays.stream(provider.getDragAndDropFeatures(
+				new org.eclipse.graphiti.features.context.impl.LayoutContext(classAnchor.getParent())))
+				.anyMatch(feature -> feature instanceof CreateActionLinkFeature action
+						&& action.canStartConnection(actionContext) && action.canCreate(actionContext)),
+				"Class contextual connection service does not propose action creation");
 		final var doubleClick = (org.eclipse.graphiti.features.context.IDoubleClickContext) Proxy.newProxyInstance(
 				org.eclipse.graphiti.features.context.IDoubleClickContext.class.getClassLoader(),
 				new Class<?>[] { org.eclipse.graphiti.features.context.IDoubleClickContext.class },
@@ -268,6 +282,26 @@ public final class ClassDiagramTest {
 				});
 		check(behavior.getDoubleClickFeature(doubleClick) instanceof gama.ui.diagram.features.edit.EditSpeciesFeature,
 				"Class double-click is not wired to shared wizard feature");
+		final var action = ((ESpecies) Graphiti.getLinkService()
+				.getBusinessObjectForLinkedPictogramElement(classAnchor.getParent())).getActionLinks().get(0).getAction();
+		final var actionShape = Graphiti.getPeCreateService().createContainerShape(diagram, true);
+		final var actionLink = org.eclipse.graphiti.mm.pictograms.PictogramsFactory.eINSTANCE.createPictogramLink();
+		actionLink.getBusinessObjects().add(action);
+		actionShape.setLink(actionLink);
+		diagram.getPictogramLinks().add(actionLink);
+		final var actionDoubleClick = new org.eclipse.graphiti.features.context.impl.CustomContext(
+				new PictogramElement[] { actionShape });
+		check(new gama.ui.diagram.features.edit.EditActionFeature(provider, null, behavior).canExecute(actionDoubleClick),
+				"Action box cannot open the shared action editor");
+		final var actionClick = (org.eclipse.graphiti.features.context.IDoubleClickContext) Proxy.newProxyInstance(
+				org.eclipse.graphiti.features.context.IDoubleClickContext.class.getClassLoader(),
+				new Class<?>[] { org.eclipse.graphiti.features.context.IDoubleClickContext.class },
+				(proxy, method, arguments) -> {
+					if ("getPictogramElements".equals(method.getName())) return new PictogramElement[] { actionShape };
+					throw new UnsupportedOperationException(method.getName());
+				});
+		check(behavior.getDoubleClickFeature(actionClick) instanceof gama.ui.diagram.features.edit.EditActionFeature,
+				"Action double-click is not wired to shared wizard feature");
 		final var delete = new org.eclipse.graphiti.features.context.impl.DeleteContext(classAnchor.getParent());
 		check(provider.getDeleteFeature(delete) instanceof gama.ui.diagram.features.others.CustomDeleteFeature
 				&& provider.getDeleteFeature(delete).canDelete(delete), "Class deletion is unavailable");

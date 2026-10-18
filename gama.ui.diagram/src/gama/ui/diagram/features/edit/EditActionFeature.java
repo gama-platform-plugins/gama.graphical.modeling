@@ -1,77 +1,73 @@
 package gama.ui.diagram.features.edit;
 
-import gama.*;
-import gama.ui.diagram.editor.MyGamaToolBehaviorProvider;
-import gama.ui.diagram.metamodel.EAction;
-import gama.ui.diagram.metamodel.ESpecies;
-import gama.ui.diagram.swt.editFrame.*;
-
-import java.util.*;
+import org.eclipse.emf.transaction.RecordingCommand;
+import org.eclipse.emf.transaction.util.TransactionUtil;
 import org.eclipse.graphiti.features.IFeatureProvider;
 import org.eclipse.graphiti.features.context.ICustomContext;
-import org.eclipse.graphiti.mm.pictograms.*;
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.window.Window;
+
+import gama.ui.diagram.editor.MyGamaToolBehaviorProvider;
+import gama.ui.diagram.features.ExampleUtil;
+import gama.ui.diagram.features.modelgeneration.ModelGenerator;
+import gama.ui.diagram.metamodel.EAction;
+import gama.ui.diagram.swt.editFrame.ActionWizardAdapter;
+import gama.ui.diagram.swt.editFrame.EditFrame;
+import gaml.compiler.ui.wizards.action.ActionWizard;
 
 public class EditActionFeature extends EditFeature {
-
 	public EditActionFeature(final IFeatureProvider fp, final EditFrame frame, final MyGamaToolBehaviorProvider tbp) {
 		super(fp, frame, tbp);
-
 	}
 
 	@Override
 	public String getDescription() {
-		return "Edition of an action";
+		return "Edit an action";
 	}
 
 	@Override
 	public boolean canExecute(final ICustomContext context) {
-		// allow rename if exactly one pictogram element
-		// representing a EClass is selected
-		boolean ret = false;
-		PictogramElement[] pes = context.getPictogramElements();
-		if ( pes != null && pes.length == 1 ) {
-			Object bo = getBusinessObjectForPictogramElement(pes[0]);
-			if ( bo instanceof EAction ) {
-				ret = true;
-			}
-		}
-		return ret;
+		final var elements = context.getPictogramElements();
+		return elements != null && elements.length == 1
+				&& getBusinessObjectForPictogramElement(elements[0]) instanceof EAction;
 	}
 
 	@Override
 	public void execute(final ICustomContext context) {
-		PictogramElement[] pes = context.getPictogramElements();
-		if ( pes != null && pes.length == 1 ) {
-			Object bo = getBusinessObjectForPictogramElement(pes[0]);
-			if ( bo instanceof EAction ) {
-				EAction eAction = (EAction) bo;
-				if ( frame == null || frame.getShell() == null || frame.getShell().isDisposed() ) {
-					frame = new EditActionFrame(getDiagram(), getFeatureProvider(), this, eAction, null, speciesList());
-					frame.open();
-					tbp.getFrames().put(eAction, frame);
-
-				} else {
-
-					frame.getShell().setFocus();
-				}
-
-			}
+		hasDoneChanges = false;
+		if (!canExecute(context)) return;
+		final var shape = context.getPictogramElements()[0];
+		final var action = (EAction) getBusinessObjectForPictogramElement(shape);
+		final var diagram = getDiagram();
+		final var editor = ExampleUtil.getDiagramEditor(getFeatureProvider());
+		final var initial = ActionWizardAdapter.snapshot(action);
+		final String originalSource = ModelGenerator.generateModel(getFeatureProvider(), diagram, null);
+		final var wizard = new ActionWizard(editor.getSite().getShell(), initial,
+				draft -> ActionWizardAdapter.validate(getFeatureProvider(), diagram, action, null, draft),
+				ActionWizardAdapter.typeNames(diagram),
+				draft -> ActionWizardAdapter.bodyContext(getFeatureProvider(), diagram, action, null, draft));
+		if (wizard.open() != Window.OK || initial.equals(wizard.getResult())) return;
+		if (action.eResource() != diagram.eResource() || !initial.equals(ActionWizardAdapter.snapshot(action))
+				|| !originalSource.equals(ModelGenerator.generateModel(getFeatureProvider(), diagram, null))) {
+			MessageDialog.openError(editor.getSite().getShell(), "Action context changed",
+					"The action or its model changed while the wizard was open. Reopen it before applying edits.");
+			return;
 		}
-		this.hasDoneChanges = true;
-	}
-
-	private List<ESpecies> speciesList() {
-		List<ESpecies> species = new ArrayList<ESpecies>();
-		List<Shape> contents = getDiagram().getChildren();
-		if ( contents != null ) {
-			for ( Shape obj : contents ) {
-				Object bo = getBusinessObjectForPictogramElement(obj);
-				if ( bo instanceof ESpecies ) {
-					species.add((ESpecies) bo);
-				}
-			}
+		final var domain = TransactionUtil.getEditingDomain(action);
+		if (domain == null) {
+			MessageDialog.openError(editor.getSite().getShell(), "Cannot edit action",
+					"The action is not attached to an editable diagram.");
+			return;
 		}
-		return species;
+		domain.getCommandStack().execute(new RecordingCommand(domain, "Edit action") {
+			@Override
+			protected void doExecute() {
+				ActionWizardAdapter.apply(action, wizard.getResult());
+				updatePictogramElement(shape);
+				layoutPictogramElement(shape);
+				ModelGenerator.modelValidation(getFeatureProvider(), diagram);
+			}
+		});
+		hasDoneChanges = true;
 	}
-
 }
