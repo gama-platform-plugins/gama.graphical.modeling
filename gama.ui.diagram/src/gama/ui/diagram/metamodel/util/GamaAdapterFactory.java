@@ -6,7 +6,6 @@
  */
 package gama.ui.diagram.metamodel.util;
 
-import gama.*;
 import gama.ui.diagram.metamodel.EAction;
 import gama.ui.diagram.metamodel.EActionLink;
 import gama.ui.diagram.metamodel.EAspect;
@@ -242,6 +241,10 @@ public class GamaAdapterFactory extends AdapterFactoryImpl {
 			@Override
 			public Adapter caseEGrid(EGrid object) {
 				return createEGridAdapter();
+			}
+			@Override
+			public Adapter caseEClassSpecies(gama.ui.diagram.metamodel.EClassSpecies object) {
+				return createEClassSpeciesAdapter();
 			}
 			@Override
 			public Adapter caseEPerceive(EPerceive object) {
@@ -745,6 +748,10 @@ public class GamaAdapterFactory extends AdapterFactoryImpl {
 	 * @see gama.ui.diagram.metamodel.EGrid
 	 * @generated
 	 */
+	public Adapter createEClassSpeciesAdapter() {
+		return null;
+	}
+
 	public Adapter createEGridAdapter() {
 		return null;
 	}

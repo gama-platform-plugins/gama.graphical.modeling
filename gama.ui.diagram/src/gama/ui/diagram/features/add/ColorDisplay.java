@@ -12,6 +12,7 @@ public class ColorDisplay {
 	public static final List<Integer> NODE_BLUE = List.of(228, 240, 240);
 	public static final List<Integer> NODE_PINK = List.of(249, 231, 228);
 	public static final List<Integer> NODE_ORANGE = List.of(245, 234, 222);
+	public static final List<Integer> NODE_CLASS = List.of(237, 231, 247);
 
 	public static final IColorConstant CLASS_FOREGROUND_ERROR = new ColorConstant(220, 70, 80);
 	public static final IColorConstant CLASS_FOREGROUND_DEFAULT = new ColorConstant(205, 211, 220);
@@ -36,6 +37,7 @@ public class ColorDisplay {
 		if (background.equals(NODE_BLUE)) return new ColorConstant(42, 94, 109);
 		if (background.equals(NODE_PINK)) return new ColorConstant(148, 55, 43);
 		if (background.equals(NODE_ORANGE)) return new ColorConstant(143, 69, 28);
+		if (background.equals(NODE_CLASS)) return new ColorConstant(91, 64, 127);
 		final int red = background.get(0);
 		final int green = background.get(1);
 		final int blue = background.get(2);

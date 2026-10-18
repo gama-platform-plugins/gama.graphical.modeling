@@ -299,6 +299,13 @@ public class GamaPackageImpl extends EPackageImpl implements GamaPackage {
 	 */
 	private EClass eGridEClass = null;
 
+	private EClass eClassSpeciesEClass = null;
+
+	@Override
+	public EClass getEClassSpecies() {
+		return eClassSpeciesEClass;
+	}
+
 	/**
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -2358,6 +2365,7 @@ public class GamaPackageImpl extends EPackageImpl implements GamaPackage {
 		eEquationLinkEClass = createEClass(EEQUATION_LINK);
 		createEReference(eEquationLinkEClass, EEQUATION_LINK__EQUATION);
 		createEReference(eEquationLinkEClass, EEQUATION_LINK__SPECIES);
+		eClassSpeciesEClass = createEClass(ECLASS_SPECIES);
 	}
 
 	/**
@@ -2416,6 +2424,7 @@ public class GamaPackageImpl extends EPackageImpl implements GamaPackage {
 		eStateLinkEClass.getESuperTypes().add(this.getEGamaLink());
 		eTaskLinkEClass.getESuperTypes().add(this.getEGamaLink());
 		eGridEClass.getESuperTypes().add(this.getESpecies());
+		eClassSpeciesEClass.getESuperTypes().add(this.getESpecies());
 		ePerceiveEClass.getESuperTypes().add(this.getEGamaObject());
 		ePerceiveLinkEClass.getESuperTypes().add(this.getEGamaLink());
 		eRuleEClass.getESuperTypes().add(this.getEGamaObject());
@@ -2627,6 +2636,8 @@ public class GamaPackageImpl extends EPackageImpl implements GamaPackage {
 		initEReference(getETaskLink_Species(), this.getESpecies(), null, "species", null, 0, 1, ETaskLink.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(eGridEClass, EGrid.class, "EGrid", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+		initEClass(eClassSpeciesEClass, gama.ui.diagram.metamodel.EClassSpecies.class, "EClassSpecies",
+				!IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 
 		initEClass(ePerceiveEClass, EPerceive.class, "EPerceive", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 		initEAttribute(getEPerceive_GamlCode(), ecorePackage.getEString(), "gamlCode", null, 0, 1, EPerceive.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);

@@ -70,6 +70,7 @@ import gama.ui.diagram.metamodel.EReflexLink;
 import gama.ui.diagram.metamodel.ERule;
 import gama.ui.diagram.metamodel.ERuleLink;
 import gama.ui.diagram.metamodel.ESpecies;
+import gama.ui.diagram.metamodel.EClassSpecies;
 import gama.ui.diagram.metamodel.EState;
 import gama.ui.diagram.metamodel.EStateLink;
 import gama.ui.diagram.metamodel.ESubSpeciesLink;
@@ -352,7 +353,9 @@ public class ModelGenerator {
 		String sp = "";
 		for (int i = 0; i < level; i++) { sp += "\t"; }
 		model.append(sp);
-		if (species instanceof EGrid) {
+		if (species instanceof EClassSpecies) {
+			model.append("class ").append(manageName(species.getName()));
+		} else if (species instanceof EGrid) {
 			model.append("grid ").append(manageName(species.getName()));
 		} else {
 			model.append("species ").append(manageName(species.getName()));
@@ -384,7 +387,8 @@ public class ModelGenerator {
 		String idT = ModelStructure.getElementId(species);
 		boolean isId = idT.equals(id);
 		if (isId) { model.append(EL).append(idT).append(EL); }
-		if (!(species instanceof EExperiment) || species.getInit() != null && !species.getInit().isBlank()) {
+		if (!(species instanceof EClassSpecies)
+				&& (!(species instanceof EExperiment) || species.getInit() != null && !species.getInit().isBlank())) {
 			model.append(defineInit(species, isId ? -1 : level + 1));
 		}
 		if (isId) { model.append(EL).append(idT).append(EL); }

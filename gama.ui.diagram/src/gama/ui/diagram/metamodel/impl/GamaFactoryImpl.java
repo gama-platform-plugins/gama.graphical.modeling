@@ -6,7 +6,6 @@
  */
 package gama.ui.diagram.metamodel.impl;
 
-import gama.*;
 import gama.ui.diagram.metamodel.EAction;
 import gama.ui.diagram.metamodel.EActionLink;
 import gama.ui.diagram.metamodel.EAspect;
@@ -101,6 +100,7 @@ public class GamaFactoryImpl extends EFactoryImpl implements GamaFactory {
 	@Override
 	public EObject create(EClass eClass) {
 		switch (eClass.getClassifierID()) {
+			case GamaPackage.ECLASS_SPECIES: return createEClassSpecies();
 			case GamaPackage.EGAMA_MODEL: return createEGamaModel();
 			case GamaPackage.EGAMA_OBJECT: return createEGamaObject();
 			case GamaPackage.ESPECIES: return createESpecies();
@@ -143,6 +143,12 @@ public class GamaFactoryImpl extends EFactoryImpl implements GamaFactory {
 			default:
 				throw new IllegalArgumentException("The class '" + eClass.getName() + "' is not a valid classifier");
 		}
+
+	}
+
+	@Override
+	public gama.ui.diagram.metamodel.EClassSpecies createEClassSpecies() {
+		return new EClassSpeciesImpl();
 	}
 
 	/**

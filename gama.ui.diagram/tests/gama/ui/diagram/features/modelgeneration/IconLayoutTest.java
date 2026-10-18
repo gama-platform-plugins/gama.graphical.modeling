@@ -60,6 +60,16 @@ public final class IconLayoutTest {
 							|| bounds.width * size[1] != bounds.height * size[0]) {
 						throw new AssertionError("Graphiti clips or distorts image");
 					}
+					final var classNode = GamaFactory.eINSTANCE.createEClassSpecies();
+					classNode.setName("Class");
+					classNode.getColorPicto().addAll(gama.ui.diagram.features.add.ColorDisplay.NODE_CLASS);
+					LayoutCommonFeature.layout(shape, diagram, classNode, false);
+					if (!(GamaImageProvider.IMG_CLASS + ".dark").equals(icon.getId())
+							|| shape.getGraphicsAlgorithm().getBackground().getRed() != 237
+							|| shape.getGraphicsAlgorithm().getBackground().getGreen() != 231
+							|| shape.getGraphicsAlgorithm().getBackground().getBlue() != 247) {
+						throw new AssertionError("Class layout lost its icon/lavender color");
+					}
 				} finally {
 					figure.setImage(null);
 					source.dispose();

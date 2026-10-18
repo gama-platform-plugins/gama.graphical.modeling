@@ -6,7 +6,6 @@
  */
 package gama.ui.diagram.metamodel.util;
 
-import gama.*;
 import gama.ui.diagram.metamodel.EAction;
 import gama.ui.diagram.metamodel.EActionLink;
 import gama.ui.diagram.metamodel.EAspect;
@@ -110,6 +109,14 @@ public class GamaSwitch<T> extends Switch<T> {
 	@Override
 	protected T doSwitch(int classifierID, EObject theEObject) {
 		switch (classifierID) {
+			case GamaPackage.ECLASS_SPECIES: {
+				final var object = (gama.ui.diagram.metamodel.EClassSpecies) theEObject;
+				T result = caseEClassSpecies(object);
+				if (result == null) result = caseESpecies(object);
+				if (result == null) result = caseEGamaObject(object);
+				if (result == null) result = defaultCase(theEObject);
+				return result;
+			}
 			case GamaPackage.EGAMA_MODEL: {
 				EGamaModel eGamaModel = (EGamaModel)theEObject;
 				T result = caseEGamaModel(eGamaModel);
@@ -880,6 +887,10 @@ public class GamaSwitch<T> extends Switch<T> {
 	 * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
 	 * @generated
 	 */
+	public T caseEClassSpecies(gama.ui.diagram.metamodel.EClassSpecies object) {
+		return null;
+	}
+
 	public T caseEGrid(EGrid object) {
 		return null;
 	}

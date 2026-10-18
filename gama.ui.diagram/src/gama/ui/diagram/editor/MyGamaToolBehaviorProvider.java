@@ -41,6 +41,8 @@ import gama.ui.diagram.features.create.CreateRuleLinkFeature;
 import gama.ui.diagram.features.create.CreateStateLinkFeature;
 import gama.ui.diagram.features.create.CreateSubGridLinkFeature;
 import gama.ui.diagram.features.create.CreateSubSpeciesLinkFeature;
+import gama.ui.diagram.features.create.CreateClassLinkFeature;
+import gama.ui.diagram.features.create.CreateClassInheritingLinkFeature;
 import gama.ui.diagram.features.create.CreateTaskLinkFeature;
 import gama.ui.diagram.features.edit.EditActionFeature;
 import gama.ui.diagram.features.edit.EditAspectFeature;
@@ -134,11 +136,13 @@ public class MyGamaToolBehaviorProvider extends DefaultToolBehaviorProvider {
 		// add new compartment at the end of the existing compartments
 		PaletteCompartmentEntry compartmentAgentEntry = new PaletteCompartmentEntry("Agents", GamaImageProvider.IMG_PALETTE_FOLDER);
 		PaletteCompartmentEntry compartmentAgentFeatureEntry = new PaletteCompartmentEntry("Agent features", GamaImageProvider.IMG_PALETTE_FOLDER);
+		PaletteCompartmentEntry compartmentClasses = new PaletteCompartmentEntry("Classes", GamaImageProvider.IMG_PALETTE_FOLDER);
 		PaletteCompartmentEntry compartmentExperimentEntry = new PaletteCompartmentEntry("Experiments", GamaImageProvider.IMG_PALETTE_FOLDER);
 		PaletteCompartmentEntry compartmentBDI = new PaletteCompartmentEntry("BDI Architecture", GamaImageProvider.IMG_PALETTE_FOLDER);
 		PaletteCompartmentEntry compartmentFSM = new PaletteCompartmentEntry("Finite State Machine", GamaImageProvider.IMG_PALETTE_FOLDER);
 		PaletteCompartmentEntry compartmentTask = new PaletteCompartmentEntry("Task-based Architecture", GamaImageProvider.IMG_PALETTE_FOLDER);
 		ret.add(compartmentAgentEntry);
+		ret.add(compartmentClasses);
 		ret.add(compartmentAgentFeatureEntry);
 		ret.add(compartmentExperimentEntry);
 		ret.add(compartmentBDI);
@@ -151,7 +155,9 @@ public class MyGamaToolBehaviorProvider extends DefaultToolBehaviorProvider {
 			ConnectionCreationToolEntry connectionCreationToolEntry = new ConnectionCreationToolEntry(
 					cf.getCreateName(), cf.getCreateDescription(), cf.getCreateImageId(), cf.getCreateLargeImageId());
 			connectionCreationToolEntry.addCreateConnectionFeature(cf);
-			if (cf instanceof CreateSubSpeciesLinkFeature || cf instanceof CreateSubGridLinkFeature
+			if (cf instanceof CreateClassLinkFeature || cf instanceof CreateClassInheritingLinkFeature) {
+				compartmentClasses.addToolEntry(connectionCreationToolEntry);
+			} else if (cf instanceof CreateSubSpeciesLinkFeature || cf instanceof CreateSubGridLinkFeature
 					|| cf instanceof CreateInheritingLinkFeature) {
 				compartmentAgentEntry.addToolEntry(connectionCreationToolEntry);
 			} else if (cf instanceof CreateActionLinkFeature || cf instanceof CreateAspectLinkFeature

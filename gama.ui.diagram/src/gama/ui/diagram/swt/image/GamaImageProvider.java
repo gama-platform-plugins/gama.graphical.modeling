@@ -16,6 +16,7 @@ import gama.ui.diagram.metamodel.EPlan;
 import gama.ui.diagram.metamodel.EReflex;
 import gama.ui.diagram.metamodel.ERule;
 import gama.ui.diagram.metamodel.ESpecies;
+import gama.ui.diagram.metamodel.EClassSpecies;
 import gama.ui.diagram.metamodel.EState;
 import gama.ui.diagram.metamodel.ETask;
 import gama.ui.diagram.metamodel.EWorldAgent;
@@ -27,6 +28,7 @@ public class GamaImageProvider extends AbstractImageProvider {
               "gama.ui.diagram.";
  
     public static final String IMG_SUBSPECIESLINK= PREFIX + "subspecieslink";
+    public static final String IMG_CLASS = PREFIX + "class";
     public static final String IMG_SUBGRIDLINK= PREFIX + "subgridlink";
     public static final String IMG_ACTIONLINK= PREFIX + "actionlink";
     public static final String IMG_ASPECTLINK= PREFIX + "aspectlink";
@@ -55,6 +57,7 @@ public class GamaImageProvider extends AbstractImageProvider {
         // register the path for each image identifier
         addOutlineImage(IMG_WORLD, "model");
         addOutlineImage(IMG_SUBSPECIESLINK, "species");
+        addOutlineImage(IMG_CLASS, "class");
         addOutlineImage(IMG_SUBGRIDLINK, "grid");
         addOutlineImage(IMG_ACTIONLINK, "action");
         addOutlineImage(IMG_ASPECTLINK, "aspect");
@@ -94,6 +97,7 @@ public class GamaImageProvider extends AbstractImageProvider {
     private static String semanticImageId(final EGamaObject object) {
         if (object instanceof EWorldAgent) return IMG_WORLD;
         if (object instanceof EGrid) return IMG_SUBGRIDLINK;
+        if (object instanceof EClassSpecies) return IMG_CLASS;
         if (object instanceof EGUIExperiment) return IMG_GUIXPLINK;
         if (object instanceof EBatchExperiment) return IMG_BATCHXPLINK;
         if (object instanceof ESpecies) return IMG_SUBSPECIESLINK;

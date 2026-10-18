@@ -271,4 +271,5 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="equation" eType="#//EEquation"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="species" eType="#//ESpecies"/>
   </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="EClassSpecies" eSuperTypes="#//ESpecies"/>
 </ecore:EPackage>

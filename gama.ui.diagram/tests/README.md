@@ -143,12 +143,44 @@ survive `.gadl` save/reload, and are included in the generated GAML header.
 Generating a diagram from a GAML document snapshots its recognized model header.
 Documentation and model edits participate in the same undoable transaction.
 
-`OutlineIconTest` checks all 15 node-type mappings and decodes the referenced light/dark SVG assets using SWT. Compile it with the same target classpath and sourcepath as above, then pass the resolved `gama.ui.shared` binary jar:
+`OutlineIconTest` checks all 16 node-type mappings and decodes the referenced light/dark SVG assets using SWT. Compile it with the same target classpath and sourcepath as above, then pass the resolved `gama.ui.shared` binary jar:
 
 ```sh
 java --enable-native-access=ALL-UNNAMED -cp "$classes:$GAMA_TARGET_CLASSPATH" \
   gama.ui.diagram.features.modelgeneration.OutlineIconTest /path/to/gama.ui.shared.jar
 ```
+
+## Classes
+
+Classes are stored as `EClassSpecies`, an additive EMF subtype that reuses
+species drawing, attribute/action editing, layout, update and deletion services.
+Existing classifier IDs and species serialization are unchanged. Classes are
+imported from class descriptions (not executable objects), including the model's
+class visitor, and generated as top-level `class` declarations without an agent
+`init` block.
+
+The **Classes** palette compartment offers **has class** and **is parent of**.
+Only the world can own classes. Class inheritance is class-only, defaults to
+`object`, and excludes self/descendants; species and grids cannot inherit classes
+or `object`. Class boxes use a lavender fill and the shared class outline icon.
+They open the shared `Kind.CLASS` form: Name, Parent, Virtual and Attributes, with
+local inherited attributes but no agent skills, control or scheduling fields.
+Actions remain separate linked boxes. Other behavior/component creation tools
+are unavailable from classes.
+
+Build against the shared wizard's `Kind.CLASS`, `SpeciesDraft.parent(String)`
+and `SpeciesWizardContext.classBuiltIns()` APIs in `gama.ui.editor`.
+`gama.ui.diagram.swt.editFrame.ClassDiagramTest` covers class import, forward
+inheritance, typed action signatures/bodies, consumed and implicit virtual action
+flags, XMI subtype/reference persistence,
+generated syntax, unchanged/creation previews, parent filtering, invalid drafts,
+world-only containment, preserved action identity, transaction undo/redo and
+palette contents/eligibility and shared edit/delete service dispatch. Compile
+`DescriptionDiagramImporterTest.java` alongside it (the source-backed fixture is
+shared) and run its standalone main like the other adapter checks.
+Source-backed checks use description doubles, not a full running GAMA
+compiler/runtime. `DiagramWizardSourceTest --source` also accepts the library's
+Define Classes recipes and exercises every class preview after XMI save/reload.
 
 ## Diagram context menu
 

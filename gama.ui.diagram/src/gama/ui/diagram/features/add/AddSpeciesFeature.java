@@ -21,6 +21,7 @@ import org.eclipse.graphiti.services.IGaService;
 import org.eclipse.graphiti.services.IPeCreateService;
 
 import gama.ui.diagram.metamodel.ESpecies;
+import gama.ui.diagram.metamodel.EClassSpecies;
 import gama.ui.diagram.features.layout.LayoutCommonFeature;
 import gama.ui.diagram.metamodel.impl.ESpeciesImpl;
 import gama.ui.diagram.swt.image.GamaImageProvider;
@@ -40,7 +41,8 @@ public class AddSpeciesFeature extends AbstractAddShapeFeature {
 	@Override
 	public boolean canAdd(final IAddContext context) {
 		// check if user wants to add a EClass
-		if ( context.getNewObject().getClass().equals(ESpeciesImpl.class) ) {
+		if ( context.getNewObject().getClass().equals(ESpeciesImpl.class)
+				|| context.getNewObject() instanceof EClassSpecies ) {
 			// check if user wants to add to a diagram
 			if ( context.getTargetContainer() instanceof Diagram ) { return true; }
 		}
@@ -70,7 +72,8 @@ public class AddSpeciesFeature extends AbstractAddShapeFeature {
 			roundedRectangle.setForeground(manageColor(error ? ColorDisplay.CLASS_FOREGROUND_ERROR
 				: ColorDisplay.CLASS_FOREGROUND_DEFAULT));
 			List<Integer> currentColor = addedClass.getColorPicto();
-			ColorDisplay.applyDefaultColor(currentColor, LEGACY_BACKGROUND, CONTINUOUS_BACKGROUND);
+			ColorDisplay.applyDefaultColor(currentColor, LEGACY_BACKGROUND,
+					addedClass instanceof EClassSpecies ? ColorDisplay.NODE_CLASS : CONTINUOUS_BACKGROUND);
 			Color color =
 				gaService.manageColor(getDiagram(), currentColor.get(0), currentColor.get(1), currentColor.get(2));
 			roundedRectangle.setBackground(color);
@@ -133,7 +136,7 @@ public class AddSpeciesFeature extends AbstractAddShapeFeature {
 		{
 
 			Shape shape3 = peCreateService.createShape(containerShape, false);
-			Image icon1 = gaService.createImage(shape3, GamaImageProvider.IMG_SUBSPECIESLINK);
+			Image icon1 = gaService.createImage(shape3, GamaImageProvider.nodeImageId(addedClass));
 			gaService.setLocationAndSize(icon1, 20 - width / 2, 3, 30, 15);
 
 			link(shape3, addedClass);

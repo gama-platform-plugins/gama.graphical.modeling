@@ -13,9 +13,11 @@ import gama.api.compilation.descriptions.IModelDescription;
 import gama.api.compilation.descriptions.ISpeciesDescription;
 import gama.api.compilation.descriptions.IStatementDescription;
 import gama.api.compilation.descriptions.ITypeDescription;
+import gama.api.compilation.descriptions.IClassDescription;
 import gama.api.compilation.descriptions.IVariableDescription;
 import gama.ui.diagram.metamodel.EAction;
 import gama.ui.diagram.metamodel.EActionLink;
+import gama.ui.diagram.metamodel.EClassSpecies;
 import gama.ui.diagram.metamodel.EAspect;
 import gama.ui.diagram.metamodel.EAspectLink;
 import gama.ui.diagram.metamodel.EDisplay;
@@ -60,7 +62,7 @@ public final class DescriptionDiagramImporter {
 
 	private final GamaFactory factory = GamaFactory.eINSTANCE;
 	private final EGamaModel model = factory.createEGamaModel();
-	private final Map<ISpeciesDescription, ESpecies> species = new IdentityHashMap<>();
+	private final Map<ITypeDescription, ESpecies> species = new IdentityHashMap<>();
 
 	private DescriptionDiagramImporter() {}
 
@@ -72,6 +74,10 @@ public final class DescriptionDiagramImporter {
 		importer.model.getObjects().add(world);
 		importer.species.put(description, world);
 		importer.populateSpecies(description, world);
+		description.visitAllClasses(classDescription -> {
+			if (isDeclaredHere(classDescription, description)) importer.addSpecies(classDescription, world);
+			return true;
+		});
 		for (final IExperimentDescription experiment : description.getExperiments()) {
 			if (isDeclaredHere(experiment, description) && !importer.species.containsKey(experiment)) {
 				importer.addSpecies(experiment, world);
@@ -81,14 +87,18 @@ public final class DescriptionDiagramImporter {
 		return importer.model;
 	}
 
-	private void addSpecies(final ISpeciesDescription description, final ESpecies owner) {
+	private void addSpecies(final ITypeDescription description, final ESpecies owner) {
 		if (species.containsKey(description)) return;
 		final ESpecies target;
 		if (description instanceof IExperimentDescription) {
 			target = ((IExperimentDescription) description).isBatch() ? factory.createEBatchExperiment()
 					: factory.createEGUIExperiment();
+		} else if ("class".equals(description.getKeyword())) {
+			if (!(owner instanceof EWorldAgent)) throw new IllegalArgumentException("Classes must belong to the world.");
+			target = factory.createEClassSpecies();
 		} else {
-			target = description.isGrid() ? factory.createEGrid() : factory.createESpecies();
+			target = description instanceof ISpeciesDescription s && s.isGrid()
+					? factory.createEGrid() : factory.createESpecies();
 		}
 		target.setName(description.getName());
 		model.getObjects().add(target);
@@ -111,7 +121,7 @@ public final class DescriptionDiagramImporter {
 		populateSpecies(description, target);
 	}
 
-	private void populateSpecies(final ISpeciesDescription description, final ESpecies target) {
+	private void populateSpecies(final ITypeDescription description, final ESpecies target) {
 		copyFacets(description, target, Set.of("name", "parent", "skills", "type"));
 		// The resolved skills also include inherited and implicit skills; only copy an explicit skills facet.
 		if (description.hasFacet("skills")) {
@@ -123,8 +133,8 @@ public final class DescriptionDiagramImporter {
 				final EVariable variable = variable(child);
 				variable.setOwner(target);
 				target.getVariables().add(variable);
-			} else if (child instanceof ISpeciesDescription) {
-				addSpecies((ISpeciesDescription) child, target);
+			} else if (child instanceof IClassDescription declaration) {
+				addSpecies(declaration, target);
 			} else if ("init".equals(child.getKeyword())) {
 				target.setInit(body(child));
 			} else if ("output".equals(child.getKeyword()) && target instanceof EExperiment) {
@@ -299,6 +309,7 @@ public final class DescriptionDiagramImporter {
 		}
 		target.setName(description.getName());
 		copyFacets(description, target, Set.of("name", "type"));
+		if (target instanceof EAction) copyVirtualFacet(description, target);
 		model.getObjects().add(target);
 		connect(link, owner, target);
 	}
@@ -345,10 +356,14 @@ public final class DescriptionDiagramImporter {
 	}
 
 	private void connectInheritance() {
-		for (final Map.Entry<ISpeciesDescription, ESpecies> entry : species.entrySet()) {
-			final ISpeciesDescription description = entry.getKey();
+		for (final Map.Entry<ITypeDescription, ESpecies> entry : species.entrySet()) {
+			final ITypeDescription description = entry.getKey();
 			if (!description.hasFacet("parent")) continue;
 			final ESpecies parent = species.get(description.getParent());
+			if (parent != null && (parent instanceof EClassSpecies)
+					!= (entry.getValue() instanceof EClassSpecies)) {
+				throw new IllegalArgumentException("Classes and species cannot inherit from each other.");
+			}
 			if (parent != null && parent != entry.getValue()) {
 				final EInheritLink link = factory.createEInheritLink();
 				link.setParent(parent);
@@ -370,6 +385,17 @@ public final class DescriptionDiagramImporter {
 		link.setSource(source);
 		link.setTarget(target);
 		model.getLinks().add(link);
+	}
+
+	private void copyVirtualFacet(final IDescription description, final EGamaObject target) {
+		if (target.getFacets().stream().anyMatch(f -> "virtual".equals(f.getName()))) return;
+		final String sourceValue = sourceFacet(description.getUnderlyingElement(), "virtual");
+		// Action validation consumes virtual, including implicit abstract declarations without a block.
+		if (sourceValue == null && !description.isAbstract()) return;
+		final EFacet facet = factory.createEFacet();
+		facet.setName("virtual");
+		facet.setValue(sourceValue == null ? "true" : sourceValue);
+		target.getFacets().add(facet);
 	}
 
 	private void copyFacets(final IDescription description, final EGamaObject target, final Set<String> excluded) {

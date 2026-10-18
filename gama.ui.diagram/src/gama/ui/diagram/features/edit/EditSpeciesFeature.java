@@ -13,6 +13,7 @@ import gama.ui.diagram.features.ExampleUtil;
 import gama.ui.diagram.features.modelgeneration.DiagramModelDocumentation;
 import gama.ui.diagram.features.modelgeneration.ModelGenerator;
 import gama.ui.diagram.metamodel.EGrid;
+import gama.ui.diagram.metamodel.EClassSpecies;
 import gama.ui.diagram.metamodel.ESpecies;
 import gama.ui.diagram.metamodel.EWorldAgent;
 import gama.ui.diagram.swt.editFrame.EditFrame;
@@ -27,7 +28,7 @@ public class EditSpeciesFeature extends EditFeature {
 
 	@Override
 	public String getDescription() {
-		return "Edit a species, grid or model";
+		return "Edit a species, grid, class or model";
 	}
 
 	@Override
@@ -52,7 +53,8 @@ public class EditSpeciesFeature extends EditFeature {
 		final var wizard = new SpeciesWizard(editor.getSite().getShell(), initial,
 				draft -> SpeciesWizardAdapter.validate(getFeatureProvider(), getDiagram(), species, null, draft),
 				true, SpeciesWizardAdapter.parentNames(species, species), SpeciesWizardAdapter.wizardContext(species),
-				species instanceof EGrid ? SpeciesWizard.Kind.GRID : SpeciesWizard.Kind.SPECIES);
+				species instanceof EClassSpecies ? SpeciesWizard.Kind.CLASS
+						: species instanceof EGrid ? SpeciesWizard.Kind.GRID : SpeciesWizard.Kind.SPECIES);
 		if (wizard.open() != Window.OK || initial.equals(wizard.getResult())) return;
 		if (!initial.equals(SpeciesWizardAdapter.snapshot(species))) {
 			MessageDialog.openError(editor.getSite().getShell(), "Species changed",

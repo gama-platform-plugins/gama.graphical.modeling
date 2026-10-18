@@ -83,6 +83,8 @@ import gama.ui.diagram.features.create.CreateRuleLinkFeature;
 import gama.ui.diagram.features.create.CreateStateLinkFeature;
 import gama.ui.diagram.features.create.CreateSubGridLinkFeature;
 import gama.ui.diagram.features.create.CreateSubSpeciesLinkFeature;
+import gama.ui.diagram.features.create.CreateClassLinkFeature;
+import gama.ui.diagram.features.create.CreateClassInheritingLinkFeature;
 import gama.ui.diagram.features.create.CreateTaskLinkFeature;
 import gama.ui.diagram.features.layout.LayoutCommonFeature;
 import gama.ui.diagram.features.layout.LayoutDiagramFeature;
@@ -280,6 +282,7 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 	@Override
 	public ICreateConnectionFeature[] getCreateConnectionFeatures() {
 		return new ICreateConnectionFeature[] { new CreateSubSpeciesLinkFeature(this),
+				new CreateClassLinkFeature(this), new CreateClassInheritingLinkFeature(this),
 				new CreateSubGridLinkFeature(this), new CreateInheritingLinkFeature(this),
 				new CreateActionLinkFeature(this), new CreateReflexLinkFeature(this), new CreateAspectLinkFeature(this),
 				new CreateDisplayLinkFeature(this), new CreateBatchExperimentLinkFeature(this),

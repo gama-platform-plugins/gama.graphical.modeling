@@ -385,4 +385,6 @@ public interface GamaFactory extends EFactory {
 	 */
 	GamaPackage getGamaPackage();
 
+	EClassSpecies createEClassSpecies();
+
 } //GamaFactory

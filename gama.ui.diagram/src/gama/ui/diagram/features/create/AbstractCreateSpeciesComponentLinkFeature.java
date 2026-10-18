@@ -9,6 +9,7 @@ import org.eclipse.graphiti.mm.pictograms.PictogramElement;
 import org.eclipse.graphiti.services.Graphiti;
 
 import gama.ui.diagram.metamodel.ESpecies;
+import gama.ui.diagram.metamodel.EClassSpecies;
 
 public abstract class AbstractCreateSpeciesComponentLinkFeature extends AbstractCreateConnectionFeature {
 
@@ -21,17 +22,22 @@ public abstract class AbstractCreateSpeciesComponentLinkFeature extends Abstract
 	public boolean canCreate(ICreateConnectionContext context) {
 		
 		ESpecies source = getESpecies(context.getSourceAnchor());
-		if (source != null) {
+		if (source != null && acceptsClassSource(source)) {
 			return true;
 		}
 		return false;
 	}
 
 	public boolean canStartConnection(ICreateConnectionContext context) {
-		if (getESpecies(context.getSourceAnchor()) != null) {
+		if (getESpecies(context.getSourceAnchor()) != null
+				&& acceptsClassSource(getESpecies(context.getSourceAnchor()))) {
 			return true;
 		}
 		return false;
+	}
+
+	protected boolean acceptsClassSource(final ESpecies source) {
+		return !(source instanceof EClassSpecies);
 	}
 	
 	

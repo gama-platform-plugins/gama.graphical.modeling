@@ -17,6 +17,8 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.parser.IParser;
 
 import gama.api.compilation.descriptions.IActionDescription;
+import gama.api.compilation.descriptions.IClassDescription;
+import gama.api.compilation.descriptions.ITypeDescription;
 import gama.api.compilation.descriptions.IDescription;
 import gama.api.compilation.descriptions.IExperimentDescription;
 import gama.api.compilation.descriptions.IModelDescription;
@@ -37,6 +39,7 @@ import gama.ui.diagram.metamodel.EInheritLink;
 import gama.ui.diagram.metamodel.ESpecies;
 import gama.ui.diagram.metamodel.EVariable;
 import gama.ui.diagram.metamodel.GamaPackage;
+import gama.ui.diagram.metamodel.EWorldAgent;
 import gaml.compiler.GamlStandaloneSetup;
 import gaml.compiler.gaml.ActionArguments;
 import gaml.compiler.gaml.GamlDefinition;
@@ -62,15 +65,17 @@ public final class DescriptionDiagramImporterTest {
 		final List<IDescription> children = new ArrayList<>();
 		final List<IDescription> arguments = new ArrayList<>();
 		final List<IExperimentDescription> experiments = new ArrayList<>();
+		final List<IClassDescription> classes = new ArrayList<>();
 		final Map<String, Description> inheritedAttributes = new LinkedHashMap<>();
 		final Map<String, Description> inheritedActions = new LinkedHashMap<>();
 		final Map<String, Description> inheritedSpecies = new LinkedHashMap<>();
 		final Facets facets = new Facets();
 		IDescription owner;
-		ISpeciesDescription parent;
+		ITypeDescription parent;
 		EObject source = EcoreFactory.eINSTANCE.createEClass();
 		boolean builtIn;
 		boolean synthetic;
+		boolean abstractDeclaration;
 		boolean batch;
 		String type = "int";
 		String code;
@@ -108,6 +113,7 @@ public final class DescriptionDiagramImporterTest {
 				case "getName" -> name;
 				case "isBuiltIn" -> builtIn;
 				case "isSynthetic" -> synthetic;
+				case "isAbstract" -> abstractDeclaration;
 				case "isParameter" -> "parameter".equals(keyword) || facets.containsKey("parameter");
 				case "getParameterName" -> parameterName == null ? name : parameterName;
 				case "getLitteral" -> facets.get((String) args[0]).serializeToGaml(false).replace("\"", "");
@@ -116,6 +122,12 @@ public final class DescriptionDiagramImporterTest {
 				case "getEnclosingDescription" -> owner;
 				case "getOwnChildren" -> children;
 				case "getExperiments" -> experiments;
+				case "visitAllClasses" -> {
+					@SuppressWarnings("unchecked")
+					final var visitor = (gama.api.utils.interfaces.ConsumerWithPruning<IClassDescription>) args[0];
+					for (final var declaration : classes) visitor.process(declaration);
+					yield null;
+				}
 				case "getParent" -> parent;
 				case "getAttribute" -> lookup(inheritedAttributes, args[0]);
 				case "getAction" -> lookup(inheritedActions, args[0]);
@@ -399,28 +411,39 @@ public final class DescriptionDiagramImporterTest {
 			if (declaration.facets.containsKey("parent")) {
 				final String name = DescriptionDiagramImporter.sourceFacet(declaration.source, "parent");
 				final Description parent = locals.get(name);
-				if (parent != null) declaration.parent = (ISpeciesDescription) parent.value;
+				if (parent != null) declaration.parent = (ITypeDescription) parent.value;
 			}
 		}
 		return DescriptionDiagramImporter.importModel((IModelDescription) model.value);
 	}
 
 	private static Description sourceDescription(final Statement statement, final Map<String, Description> locals) {
-		final String keyword = statement instanceof S_Definition definition && !(statement instanceof S_Action)
+		final String keyword = statement instanceof gaml.compiler.gaml.S_Callable ? "action"
+				: statement instanceof S_Definition definition
 				? NodeModelUtils.getTokenText(NodeModelUtils.findActualNodeFor(definition.getTkey()))
 				: statement.getKey();
 		final String name = statement instanceof S_Display display ? display.getName().replaceAll("^['\"]|['\"]$", "")
 				: statement instanceof GamlDefinition definition ? definition.getName()
 				: statement.getExpr() == null ? "" : NodeModelUtils.getTokenText(
 						NodeModelUtils.findActualNodeFor(statement.getExpr())).replaceAll("^['\"]|['\"]$", "");
-		final Class<? extends IDescription> kind = statement instanceof S_Experiment ? IExperimentDescription.class
+		final Class<? extends IDescription> kind = statement instanceof S_Species && "class".equals(keyword)
+				? IClassDescription.class : statement instanceof S_Experiment ? IExperimentDescription.class
 				: statement instanceof S_Species ? ISpeciesDescription.class
-				: statement instanceof S_Action ? IActionDescription.class
+				: statement instanceof gaml.compiler.gaml.S_Callable ? IActionDescription.class
 				: statement instanceof S_Definition ? IVariableDescription.class : IStatementDescription.class;
 		final var description = new Description(kind, keyword, name);
 		description.source = statement;
 		description.type = statement instanceof S_Definition ? keyword : "int";
 		sourceFacets(description, statement);
+		if (statement instanceof gaml.compiler.gaml.S_Method method) {
+			description.facet("type", NodeModelUtils.getTokenText(NodeModelUtils.findActualNodeFor(method.getTkey())));
+		}
+		if (statement instanceof gaml.compiler.gaml.S_Callable) {
+			description.abstractDeclaration = statement.getBlock() == null || statement.getFacets().stream()
+					.anyMatch(f -> "virtual:".equals(f.getKey()) && f.getExpr() != null
+							&& "true".equals(NodeModelUtils.getTokenText(NodeModelUtils.findActualNodeFor(f.getExpr()))));
+			description.facets.remove("virtual");
+		}
 		if (statement instanceof S_Species) locals.put(name, description);
 		if (statement instanceof ActionArguments callable) {
 			for (final var argument : callable.getArgs()) {
@@ -555,8 +578,28 @@ public final class DescriptionDiagramImporterTest {
 				check(value.equals(EcoreUtil.copy(object).eGet(attribute)), "Preview copy lost " + attribute.getName());
 				checked++;
 			}
+
 		}
 		check(checked == 17, "Missing stored code/layer attributes: " + checked);
+	}
+
+	private static void classesFromModelVisitor() {
+		final var model = new Description(IModelDescription.class, "model", "classes");
+		final var parent = model.add(new Description(IClassDescription.class, "class", "parent"));
+		final var child = model.add(new Description(IClassDescription.class, "class", "child").facet("parent", "parent"));
+		child.parent = (IClassDescription) parent.value;
+		parent.add(variable("value"));
+		model.classes.addAll(List.of((IClassDescription) child.value, (IClassDescription) parent.value));
+		model.children.clear();
+		final var imported = DescriptionDiagramImporter.importModel((IModelDescription) model.value);
+		final var classes = imported.getObjects().stream()
+				.filter(gama.ui.diagram.metamodel.EClassSpecies.class::isInstance)
+				.map(gama.ui.diagram.metamodel.EClassSpecies.class::cast).toList();
+		check(classes.size() == 2, "visitAllClasses declarations missing or duplicated");
+		final var importedChild = classes.stream().filter(c -> "child".equals(c.getName())).findFirst().orElseThrow();
+		check(importedChild.getInheritsFrom() != null && "parent".equals(importedChild.getInheritsFrom().getName()),
+				"Forward class inheritance not resolved");
+		check(importedChild.getMacroSpeciesLinks().get(0).getMacro() instanceof EWorldAgent, "Class visitor owner is not world");
 	}
 
 	public static void main(final String[] args) {
@@ -565,6 +608,7 @@ public final class DescriptionDiagramImporterTest {
 		componentsAndExperiments();
 		sourcePreservation();
 		storedAttributesAreCopied();
+		classesFromModelVisitor();
 		System.out.println("PASS: description-only import, built-in exclusion and explicit overrides, inherited copies, "
 				+ "nested species, inheritance, imports, component bodies/facets, action signatures, experiments, "
 				+ "outputs, parameters and XMI persistence");

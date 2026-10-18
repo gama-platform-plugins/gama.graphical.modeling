@@ -15,6 +15,7 @@ import org.eclipse.graphiti.services.IGaService;
 import org.eclipse.graphiti.services.IPeCreateService;
 
 import gama.ui.diagram.metamodel.ESubSpeciesLink;
+import gama.ui.diagram.metamodel.EClassSpecies;
 
 public class AddSubSpecieLinkFeature extends AbstractAddFeature {
  
@@ -50,7 +51,7 @@ public class AddSubSpecieLinkFeature extends AbstractAddFeature {
         		//createDefaultText(textDecorator);
         text.setForeground(manageColor(ColorDisplay.RELATION_TEXT_FOREGROUND));
         gaService.setLocation(text, 10, 0);
-        text.setValue("is macro agent of");
+        text.setValue(addedEReference.getMicro() instanceof EClassSpecies ? "has class" : "is macro agent of");
  
         // add static graphical decorator (composition and navigable)
         ConnectionDecorator cd;

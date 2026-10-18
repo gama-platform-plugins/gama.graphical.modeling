@@ -27,13 +27,20 @@ public class CreateSubSpeciesLinkFeature extends AbstractCreateSpeciesComponentL
 
    
 	public CreateSubSpeciesLinkFeature(IFeatureProvider fp) {
-		// provide name and description for the UI, e.g. the palette
-		super(fp, "is composed of a species", "Create a new species");
+		this(fp, false);
+	}
+
+	private final boolean classes;
+
+	protected CreateSubSpeciesLinkFeature(final IFeatureProvider fp, final boolean classes) {
+		super(fp, classes ? "has class" : "is composed of a species",
+				classes ? "Create a class belonging to the world" : "Create a new species");
+		this.classes = classes;
 	}
 
 	private ESpecies createESpecies(ESpecies source) {
 		if (source == null) return null;
-		String newSpeciesName = "my_species";
+		String newSpeciesName = classes ? "my_class" : "my_species";
 	    String initName = newSpeciesName;
 	    List<String> names = new ArrayList<String>();
 	    for (ESubSpeciesLink li : source.getMicroSpeciesLinks()){
@@ -45,14 +52,17 @@ public class CreateSubSpeciesLinkFeature extends AbstractCreateSpeciesComponentL
 	    	newSpeciesName = initName + cpt;
 	    	cpt++;
 	    }
-	    ESpecies newSpecies = gama.ui.diagram.metamodel.GamaFactory.eINSTANCE.createESpecies();
+	    ESpecies newSpecies = classes ? gama.ui.diagram.metamodel.GamaFactory.eINSTANCE.createEClassSpecies()
+	            : gama.ui.diagram.metamodel.GamaFactory.eINSTANCE.createESpecies();
 	    newSpecies.setError("");
 	    newSpecies.setHasError(false);
 		newSpecies.setName(newSpeciesName);
 		final var editor = ExampleUtil.getDiagramEditor(getFeatureProvider());
 		final var wizard = new SpeciesWizard(editor.getSite().getShell(), SpeciesWizardAdapter.snapshot(newSpecies),
 				draft -> SpeciesWizardAdapter.validate(getFeatureProvider(), getDiagram(), newSpecies, source, draft),
-				true, SpeciesWizardAdapter.parentNames(source, null), SpeciesWizardAdapter.wizardContext(source, null));
+				true, SpeciesWizardAdapter.parentNames(source, null, classes),
+				SpeciesWizardAdapter.wizardContext(source, null, classes),
+				classes ? SpeciesWizard.Kind.CLASS : SpeciesWizard.Kind.SPECIES);
 		if (wizard.open() != Window.OK) return null;
 		
 	  	this.getDiagram().eResource().getContents().add(newSpecies);
@@ -69,6 +79,7 @@ public class CreateSubSpeciesLinkFeature extends AbstractCreateSpeciesComponentL
 	}
 	
 	public Connection create(ICreateConnectionContext context) {
+		if (!canCreate(context)) return null;
 		Connection newConnection = null;
 		ESpecies source = getESpecies(context.getSourceAnchor());
 		ESpecies target = createESpecies(source);
@@ -78,6 +89,10 @@ public class CreateSubSpeciesLinkFeature extends AbstractCreateSpeciesComponentL
 			SpeciesWizardAdapter.syncParentConnection(getFeatureProvider(), getDiagram(), target, List.of());
 			// create new business object
 			ESubSpeciesLink eReference = createEReference(source, target);
+			eReference.setMacro(source);
+			eReference.setMicro(target);
+			eReference.setSource(source);
+			eReference.setTarget(target);
 			//eReference.setModel(source.getModel());
 			getDiagram().eResource().getContents().add(eReference);
 			// add connection for business object
@@ -86,8 +101,6 @@ public class CreateSubSpeciesLinkFeature extends AbstractCreateSpeciesComponentL
 			addContext.setNewObject(eReference);
 			newConnection = (Connection) getFeatureProvider().addIfPossible(
 					addContext);
-			eReference.setMacro(source);
-			eReference.setMicro(target);
 			source.getMicroSpeciesLinks().add(eReference);
 			target.getMacroSpeciesLinks().add(eReference);
 		}
@@ -110,7 +123,7 @@ public class CreateSubSpeciesLinkFeature extends AbstractCreateSpeciesComponentL
 
 	@Override
 	public String getCreateImageId() {
-		return GamaImageProvider.IMG_SUBSPECIESLINK;
+		return classes ? GamaImageProvider.IMG_CLASS : GamaImageProvider.IMG_SUBSPECIESLINK;
 	}
 	
 	public void execute(IContext context) {

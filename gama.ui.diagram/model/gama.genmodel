@@ -229,5 +229,6 @@
       <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference gama.ecore#//EEquationLink/equation"/>
       <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference gama.ecore#//EEquationLink/species"/>
     </genClasses>
+    <genClasses ecoreClass="gama.ecore#//EClassSpecies"/>
   </genPackages>
 </genmodel:GenModel>

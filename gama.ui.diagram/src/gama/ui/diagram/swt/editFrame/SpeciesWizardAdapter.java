@@ -26,6 +26,7 @@ import gama.ui.diagram.metamodel.EFacet;
 import gama.ui.diagram.metamodel.ESpecies;
 import gama.ui.diagram.metamodel.EExperiment;
 import gama.ui.diagram.metamodel.EGrid;
+import gama.ui.diagram.metamodel.EClassSpecies;
 import gama.ui.diagram.metamodel.EWorldAgent;
 import gama.ui.diagram.metamodel.EInheritLink;
 import gama.ui.diagram.metamodel.EVariable;
@@ -99,13 +100,17 @@ public final class SpeciesWizardAdapter {
 	}
 
 	private static void apply(final ESpecies species, final SpeciesDraft draft, final boolean editParent) {
+		if (species instanceof EClassSpecies) {
+			final String error = classDraftError(species, null, draft);
+			if (error != null) throw new IllegalArgumentException(error);
+		}
 		for (final Facet value : draft.facets()) {
 			if (!editableFacet(value.name()) && !"parent".equals(value.name())) {
 				throw new IllegalArgumentException("Name and skills have dedicated fields.");
 			}
 		}
 		if (editParent) {
-			final String parentName = parentName(draft);
+			final String parentName = parentName(species, draft);
 			final ESpecies parent = resolveParent(species, parentName);
 			applyParent(species, parent, parentName, draft.facets().stream().anyMatch(f -> "parent".equals(f.name())));
 		}
@@ -153,9 +158,8 @@ public final class SpeciesWizardAdapter {
 		species.getVariables().addAll(variables);
 	}
 
-	private static String parentName(final SpeciesDraft draft) {
-		return draft.facets().stream().filter(f -> "parent".equals(f.name())).map(Facet::value)
-				.findFirst().orElse("agent");
+	private static String parentName(final ESpecies species, final SpeciesDraft draft) {
+		return draft.parent(species instanceof EClassSpecies ? "object" : "agent");
 	}
 
 	private static List<ESpecies> speciesInResource(final ESpecies species) {
@@ -183,10 +187,16 @@ public final class SpeciesWizardAdapter {
 	}
 
 	public static SpeciesWizardContext wizardContext(final ESpecies context, final ESpecies edited) {
-		return SpeciesWizardContext.builtIns().and(new SpeciesWizardContext() {
+		return wizardContext(context, edited, context instanceof EClassSpecies);
+	}
+
+	public static SpeciesWizardContext wizardContext(final ESpecies context, final ESpecies edited,
+			final boolean classes) {
+		return (classes ? SpeciesWizardContext.classBuiltIns() : SpeciesWizardContext.builtIns())
+				.and(new SpeciesWizardContext() {
 			@Override
 			public List<InheritedAttribute> attributes(final SpeciesDraft selection) {
-				return localAttributes(context, selection);
+				return localAttributes(context, selection, classes);
 			}
 
 			@Override
@@ -200,7 +210,10 @@ public final class SpeciesWizardAdapter {
 				return candidates.stream().filter(name -> {
 					final List<ESpecies> matches = available.stream()
 							.filter(species -> name.equals(species.getName())).toList();
-					return matches.isEmpty() || matches.size() == 1
+					if (matches.isEmpty()) return classes
+							? "object".equals(name) || SpeciesWizardContext.classParent(name) != null
+							: !"object".equals(name);
+					return matches.size() == 1 && (matches.get(0) instanceof EClassSpecies) == classes
 							&& matches.get(0) != edited && !cyclic(edited, matches.get(0));
 				}).toList();
 			}
@@ -210,14 +223,22 @@ public final class SpeciesWizardAdapter {
 	static List<String> mirrorNames(final ESpecies context) {
 		final List<ESpecies> available = speciesInResource(context);
 		return available.stream().map(ESpecies::getName).filter(name -> name != null && !name.isBlank())
+				.filter(name -> available.stream().noneMatch(s -> s instanceof EClassSpecies && name.equals(s.getName())))
 				.filter(name -> available.stream().filter(species -> name.equals(species.getName())).count() == 1)
 				.sorted().toList();
 	}
 
 	static List<InheritedAttribute> localAttributes(final ESpecies context, final SpeciesDraft selection) {
+		return localAttributes(context, selection, context instanceof EClassSpecies);
+	}
+
+	private static List<InheritedAttribute> localAttributes(final ESpecies context, final SpeciesDraft selection,
+			final boolean classes) {
 		final Map<String, InheritedAttribute> attributes = new LinkedHashMap<>();
-		final List<ESpecies> available = speciesInResource(context);
-		inheritAttributes(available, parentName(selection), "Parent", attributes);
+		final List<ESpecies> available = speciesInResource(context).stream()
+				.filter(s -> (s instanceof EClassSpecies) == classes).toList();
+		final String parent = selection.parent(classes ? "object" : "agent");
+		inheritAttributes(available, parent, "Parent", attributes);
 		final String mirror = selection.facets().stream().filter(facet -> "mirrors".equals(facet.name()))
 				.map(Facet::value).findFirst().orElse("");
 		if (!mirror.isBlank() && available.stream().filter(species -> mirror.equals(species.getName())).count() == 1) {
@@ -248,26 +269,39 @@ public final class SpeciesWizardAdapter {
 	}
 
 	public static List<String> parentNames(final ESpecies context, final ESpecies edited) {
+		return parentNames(context, edited, context instanceof EClassSpecies);
+	}
+
+	public static List<String> parentNames(final ESpecies context, final ESpecies edited, final boolean classes) {
 		final List<String> names = new ArrayList<>();
-		names.add("agent");
+		names.add(classes ? "object" : "agent");
 		for (final ESpecies candidate : speciesInResource(context)) {
-			if (candidate != edited && !cyclic(edited, candidate)
+			if ((candidate instanceof EClassSpecies) == classes && candidate != edited && !cyclic(edited, candidate)
 					&& candidate.getName() != null && !names.contains(candidate.getName())) names.add(candidate.getName());
 		}
 		return names;
 	}
 
 	private static ESpecies resolveParent(final ESpecies species, final String name) {
-		if ("agent".equals(name)) return null;
+		final boolean classes = species instanceof EClassSpecies;
+		if (!classes && "object".equals(name)) {
+			throw new IllegalArgumentException("Species cannot inherit from object or other classes.");
+		}
+		if ((classes ? "object" : "agent").equals(name)) return null;
 		final List<ESpecies> matches = speciesInResource(species).stream()
 				.filter(candidate -> name.equals(candidate.getName())).toList();
 		if (matches.size() > 1) throw new IllegalArgumentException("Parent species name is ambiguous: " + name);
 		if (matches.isEmpty()) {
-			if (SpeciesWizardContext.builtInParent(name) != null) return null;
+			if (classes ? SpeciesWizardContext.classParent(name) != null
+					: SpeciesWizardContext.builtInParent(name) != null) return null;
+			if (classes) throw new IllegalArgumentException("A class parent must be object or a class in this diagram.");
 			final boolean existing = species.getFacets().stream()
 					.anyMatch(f -> "parent".equals(f.getName()) && name.equals(f.getValue()));
 			if (existing) return null;
 			throw new IllegalArgumentException("Parent species is not available in this diagram: " + name);
+		}
+		if ((matches.get(0) instanceof EClassSpecies) != classes) {
+			throw new IllegalArgumentException("Classes can inherit only from classes; species cannot inherit from classes.");
 		}
 		if (cyclic(species, matches.get(0))) throw new IllegalArgumentException("A species cannot inherit from itself or its descendants.");
 		return matches.get(0);
@@ -357,6 +391,10 @@ public final class SpeciesWizardAdapter {
 	/** Validate a complete candidate on copies; neither the live diagram nor its validation status is changed. */
 	public static String validate(final IFeatureProvider fp, final Diagram diagram, final ESpecies species,
 			final ESpecies owner, final SpeciesDraft draft) {
+		if (species instanceof EClassSpecies) {
+			final String error = classDraftError(species, owner, draft);
+			if (error != null) return error;
+		}
 		if (species instanceof EGrid && draft.facets().stream()
 				.anyMatch(facet -> "mirrors".equals(facet.name()) && !facet.value().isBlank())) {
 			return "A grid cannot mirror another species.";
@@ -366,17 +404,22 @@ public final class SpeciesWizardAdapter {
 		}
 		try {
 			if (!(species instanceof EWorldAgent)) {
-			if (owner == null) resolveParent(species, parentName(draft));
-			else if (!"agent".equals(parentName(draft))) {
-				final long matches = speciesInResource(owner).stream()
-						.filter(candidate -> parentName(draft).equals(candidate.getName())).count();
-				if (matches > 1 || matches == 0 && SpeciesWizardContext.builtInParent(parentName(draft)) == null) {
-					return "Choose an unambiguous parent from the available diagram or built-in species.";
+				final String parent = parentName(species, draft);
+				if (owner == null) resolveParent(species, parent);
+				else if (!(species instanceof EClassSpecies ? "object" : "agent").equals(parent)) {
+					final var matches = speciesInResource(owner).stream()
+							.filter(candidate -> parent.equals(candidate.getName())).toList();
+					final boolean builtin = species instanceof EClassSpecies
+							? SpeciesWizardContext.classParent(parent) != null
+							: SpeciesWizardContext.builtInParent(parent) != null;
+					if (matches.size() > 1 || matches.isEmpty() && !builtin
+							|| matches.size() == 1 && (matches.get(0) instanceof EClassSpecies) != (species instanceof EClassSpecies)) {
+						return "Choose an unambiguous parent from the available diagram or built-in species.";
+					}
 				}
-			}
-			if (owner == null && parentName(draft).equals(draft.name()) && !"agent".equals(parentName(draft))) {
-				return "A species cannot inherit from itself.";
-			}
+				if (parent.equals(draft.name())) {
+					return "A species or class cannot inherit from itself.";
+				}
 			}
 		} catch (final IllegalArgumentException error) {
 			return error.getMessage();
@@ -425,6 +468,22 @@ public final class SpeciesWizardAdapter {
 		}
 	}
 
+	private static String classDraftError(final ESpecies species, final ESpecies owner, final SpeciesDraft draft) {
+		if (owner != null && !(owner instanceof EWorldAgent)
+				|| species.getMacroSpeciesLinks().stream().anyMatch(link -> !(link.getMacro() instanceof EWorldAgent))) {
+			return "Classes can belong only to the world.";
+		}
+		if (!draft.skills().isEmpty() || !draft.init().isBlank() || !draft.reflexOrder().isEmpty()
+				|| draft.facets().stream().anyMatch(f -> !Set.of("parent", "virtual").contains(f.name()))) {
+			return "Classes support only name, parent, virtual and attributes in this dialog.";
+		}
+		final ESpecies scope = owner == null ? species : owner;
+		if (speciesInResource(scope).stream().anyMatch(other -> other != species && draft.name().equals(other.getName()))) {
+			return "A type with this name already exists in the diagram.";
+		}
+		return null;
+	}
+
 	static String candidateModel(final IFeatureProvider fp, final Diagram diagram, final ESpecies species,
 			final ESpecies owner, final SpeciesDraft draft) {
 		final var copier = new EcoreUtil.Copier(true, false);
@@ -435,7 +494,8 @@ public final class SpeciesWizardAdapter {
 		final Diagram preview = (Diagram) copier.get(diagram);
 		ESpecies target = (ESpecies) copier.get(species);
 		if (owner != null) {
-			target = GamaFactory.eINSTANCE.createESpecies();
+			target = species instanceof EClassSpecies
+					? GamaFactory.eINSTANCE.createEClassSpecies() : GamaFactory.eINSTANCE.createESpecies();
 			previewResource.getContents().add(target);
 			final ESpecies copiedOwner = (ESpecies) copier.get(owner);
 			final var link = GamaFactory.eINSTANCE.createESubSpeciesLink();

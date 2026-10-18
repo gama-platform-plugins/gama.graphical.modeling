@@ -53,6 +53,11 @@ public class CreateActionLinkFeature extends AbstractCreateSpeciesComponentLinkF
 		super(fp, "has the action", "Create action link");
 	}
 
+	@Override
+	protected boolean acceptsClassSource(final ESpecies source) {
+		return true;
+	}
+
 	/**
 	 * Creates the E action.
 	 *

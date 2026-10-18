@@ -16,12 +16,13 @@ public final class OutlineIconTest {
 				factory.createEGUIExperiment(), factory.createEBatchExperiment(), factory.createEAction(),
 				factory.createEAspect(), factory.createEReflex(), factory.createEDisplay(), factory.createEEquation(),
 				factory.createEPerceive(), factory.createEState(), factory.createETask(), factory.createEPlan(),
-				factory.createERule());
+				factory.createERule(), factory.createEClassSpecies());
 		final var expected = List.of(GamaImageProvider.IMG_WORLD, GamaImageProvider.IMG_SUBSPECIESLINK,
 				GamaImageProvider.IMG_SUBGRIDLINK, GamaImageProvider.IMG_GUIXPLINK, GamaImageProvider.IMG_BATCHXPLINK,
 				GamaImageProvider.IMG_ACTIONLINK, GamaImageProvider.IMG_ASPECTLINK, GamaImageProvider.IMG_REFLEXLINK,
 				GamaImageProvider.IMG_DISPLAYLINK, GamaImageProvider.IMG_EQUATION, GamaImageProvider.IMG_PERCEIPT,
-				GamaImageProvider.IMG_STATE, GamaImageProvider.IMG_TASK, GamaImageProvider.IMG_PLAN, GamaImageProvider.IMG_RULE);
+				GamaImageProvider.IMG_STATE, GamaImageProvider.IMG_TASK, GamaImageProvider.IMG_PLAN, GamaImageProvider.IMG_RULE,
+				GamaImageProvider.IMG_CLASS);
 		for (int i = 0; i < nodes.size(); i++) {
 			if (!(expected.get(i) + ".dark").equals(GamaImageProvider.nodeImageId(nodes.get(i)))) {
 				throw new AssertionError("Incorrect icon for " + nodes.get(i).eClass().getName());
@@ -38,7 +39,7 @@ public final class OutlineIconTest {
 			}
 			for (final String theme : List.of("light", "dark")) {
 				for (final String name : List.of("model", "species", "grid", "gui", "batch", "action", "aspect",
-						"reflex", "display", "equation", "perceive", "state", "task", "rule", "unknown")) {
+						"reflex", "display", "equation", "perceive", "state", "task", "rule", "unknown", "class")) {
 					final String path = "icons_svg/" + theme + "/gaml/_" + name + ".svg";
 					final var entry = jar.getJarEntry(path);
 					if (entry == null) throw new AssertionError("Missing outline asset: " + path);
@@ -51,6 +52,6 @@ public final class OutlineIconTest {
 				}
 			}
 		}
-		System.out.println("PASS: 15 semantic node mappings, 30 shared light/dark outline SVGs and palette folder SVG");
+		System.out.println("PASS: 16 semantic node mappings, 32 shared light/dark outline SVGs and palette folder SVG");
 	}
 }
