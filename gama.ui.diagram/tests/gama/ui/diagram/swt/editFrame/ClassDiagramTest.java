@@ -264,6 +264,17 @@ public final class ClassDiagramTest {
 				.getToolEntries().stream().anyMatch(t -> "has the action".equals(t.getLabel())),
 				"Species action creation disappeared from Agent features");
 		check(palette.get(1) == classes, "Classes palette is not after Agents");
+		final var tools = palette.stream().flatMap(c -> c.getToolEntries().stream()).toList();
+		check(!tools.isEmpty() && tools.stream().noneMatch(t -> t.getIconId() == null
+				|| t.getIconId().contains("palette.section")), "A palette tool lost its outline icon");
+		check(tools.stream().filter(t -> "has class".equals(t.getLabel())).allMatch(
+				t -> gama.ui.diagram.swt.image.GamaImageProvider.IMG_CLASS.equals(t.getIconId())),
+				"Class tool does not use the class outline icon");
+		final var sections = java.util.Map.of("Agents", "neutral", "Classes", "class", "Agent features", "orange",
+				"Experiments", "blue", "BDI Architecture", "green", "Finite State Machine", "pink",
+				"Task-based Architecture", "green");
+		check(palette.size() == sections.size() && palette.stream().allMatch(c -> ("gama.ui.diagram.palette.section."
+				+ sections.get(c.getLabel())).equals(c.getIconId())), "Palette sections do not use their colored circles");
 		check(palette.get(0).getToolEntries().stream().noneMatch(t -> "has class".equals(t.getLabel())),
 				"Class creation also appears in Agents");
 		final var actionContext = new CreateConnectionContext();

@@ -55,6 +55,7 @@ public class CreateDisplayLinkFeature extends AbstractCreateSpeciesComponentLink
 					() -> DisplayWizardAdapter.speciesNames(diagram, true),
 					value -> DisplayWizardAdapter.context(getFeatureProvider(), diagram, null, experiment, value),
 					species -> DisplayWizardAdapter.aspectNames(diagram, species));
+			wizard.setCreationMode(true);
 			if (wizard.open() != Window.OK) return null;
 			draft = wizard.getResult();
 			if (experiment.eResource() != diagram.eResource()

@@ -55,6 +55,7 @@ public class EditSpeciesFeature extends EditFeature {
 				true, SpeciesWizardAdapter.parentNames(species, species), SpeciesWizardAdapter.wizardContext(species),
 				species instanceof EClassSpecies ? SpeciesWizard.Kind.CLASS
 						: species instanceof EGrid ? SpeciesWizard.Kind.GRID : SpeciesWizard.Kind.SPECIES);
+		wizard.setCreationMode(false);
 		if (wizard.open() != Window.OK || initial.equals(wizard.getResult())) return;
 		if (!initial.equals(SpeciesWizardAdapter.snapshot(species))) {
 			MessageDialog.openError(editor.getSite().getShell(), "Species changed",
@@ -93,6 +94,7 @@ public class EditSpeciesFeature extends EditFeature {
 		final var wizard = new SpeciesWizard(editor.getSite().getShell(), initial,
 				draft -> SpeciesWizardAdapter.validate(getFeatureProvider(), diagram, world, null, draft),
 				true, SpeciesWizardAdapter.wizardContext(world), location, false, documentation);
+		wizard.setCreationMode(false);
 		if (wizard.open() != Window.OK || initial.equals(wizard.getResult())
 				&& documentation.equals(wizard.getDocumentation())) return;
 		if (!initial.equals(SpeciesWizardAdapter.modelSnapshot(diagram, world))

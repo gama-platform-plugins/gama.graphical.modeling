@@ -134,13 +134,13 @@ public class MyGamaToolBehaviorProvider extends DefaultToolBehaviorProvider {
 		List<IPaletteCompartmentEntry> ret = new ArrayList<>();
 
 		// add new compartment at the end of the existing compartments
-		PaletteCompartmentEntry compartmentAgentEntry = new PaletteCompartmentEntry("Agents", GamaImageProvider.IMG_PALETTE_FOLDER);
-		PaletteCompartmentEntry compartmentAgentFeatureEntry = new PaletteCompartmentEntry("Agent features", GamaImageProvider.IMG_PALETTE_FOLDER);
-		PaletteCompartmentEntry compartmentClasses = new PaletteCompartmentEntry("Classes", GamaImageProvider.IMG_PALETTE_FOLDER);
-		PaletteCompartmentEntry compartmentExperimentEntry = new PaletteCompartmentEntry("Experiments", GamaImageProvider.IMG_PALETTE_FOLDER);
-		PaletteCompartmentEntry compartmentBDI = new PaletteCompartmentEntry("BDI Architecture", GamaImageProvider.IMG_PALETTE_FOLDER);
-		PaletteCompartmentEntry compartmentFSM = new PaletteCompartmentEntry("Finite State Machine", GamaImageProvider.IMG_PALETTE_FOLDER);
-		PaletteCompartmentEntry compartmentTask = new PaletteCompartmentEntry("Task-based Architecture", GamaImageProvider.IMG_PALETTE_FOLDER);
+		PaletteCompartmentEntry compartmentAgentEntry = new PaletteCompartmentEntry("Agents", GamaImageProvider.IMG_SECTION_NEUTRAL);
+		PaletteCompartmentEntry compartmentAgentFeatureEntry = new PaletteCompartmentEntry("Agent features", GamaImageProvider.IMG_SECTION_ORANGE);
+		PaletteCompartmentEntry compartmentClasses = new PaletteCompartmentEntry("Classes", GamaImageProvider.IMG_SECTION_CLASS);
+		PaletteCompartmentEntry compartmentExperimentEntry = new PaletteCompartmentEntry("Experiments", GamaImageProvider.IMG_SECTION_BLUE);
+		PaletteCompartmentEntry compartmentBDI = new PaletteCompartmentEntry("BDI Architecture", GamaImageProvider.IMG_SECTION_GREEN);
+		PaletteCompartmentEntry compartmentFSM = new PaletteCompartmentEntry("Finite State Machine", GamaImageProvider.IMG_SECTION_PINK);
+		PaletteCompartmentEntry compartmentTask = new PaletteCompartmentEntry("Task-based Architecture", GamaImageProvider.IMG_SECTION_GREEN);
 		ret.add(compartmentAgentEntry);
 		ret.add(compartmentClasses);
 		ret.add(compartmentAgentFeatureEntry);

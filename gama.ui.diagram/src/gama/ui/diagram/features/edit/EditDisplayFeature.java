@@ -52,6 +52,7 @@ public class EditDisplayFeature extends EditFeature {
 				() -> DisplayWizardAdapter.speciesNames(diagram, true),
 				draft -> DisplayWizardAdapter.context(getFeatureProvider(), diagram, display, null, draft),
 				species -> DisplayWizardAdapter.aspectNames(diagram, species));
+		wizard.setCreationMode(false);
 		if (wizard.open() != Window.OK || initial.equals(wizard.getResult())) return;
 		if (display.eResource() != diagram.eResource() || !initial.equals(DisplayWizardAdapter.snapshot(display))
 				|| !originalSource.equals(ModelGenerator.generateModel(getFeatureProvider(), diagram, null))) {

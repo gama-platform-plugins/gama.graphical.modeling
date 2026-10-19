@@ -68,6 +68,7 @@ public class CreateActionLinkFeature extends AbstractCreateSpeciesComponentLinkF
 				draft -> ActionWizardAdapter.validate(getFeatureProvider(), diagram, null, source, draft),
 				ActionWizardAdapter.typeNames(diagram),
 				draft -> ActionWizardAdapter.bodyContext(getFeatureProvider(), diagram, null, source, draft));
+		wizard.setCreationMode(true);
 		if (wizard.open() != Window.OK) return null;
 		if (source.eResource() != diagram.eResource()
 				|| !originalSource.equals(ModelGenerator.generateModel(getFeatureProvider(), diagram, null))) {

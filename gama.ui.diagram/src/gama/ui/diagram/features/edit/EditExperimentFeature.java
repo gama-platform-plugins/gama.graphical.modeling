@@ -48,6 +48,7 @@ public class EditExperimentFeature extends EditFeature {
 				ActionWizardAdapter.typeNames(diagram), () -> ExperimentWizardAdapter.variableNames(experiment, world),
 				draft -> ExperimentWizardAdapter.bodyContext(getFeatureProvider(), diagram, experiment, null, draft),
 				() -> ExperimentWizardAdapter.parentNames(diagram, experiment));
+		wizard.setCreationMode(false);
 		if (wizard.open() != Window.OK || initial.equals(wizard.getResult())) return;
 		if (experiment.eResource() != diagram.eResource()
 				|| !initial.equals(ExperimentWizardAdapter.snapshot(experiment))

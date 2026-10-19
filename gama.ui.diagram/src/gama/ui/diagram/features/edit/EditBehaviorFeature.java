@@ -50,6 +50,7 @@ public class EditBehaviorFeature extends EditFeature {
 				BehaviorWizardAdapter.selectableKinds(kind),
 				draft -> BehaviorWizardAdapter.validate(getFeatureProvider(), diagram, object, null, draft),
 				draft -> BehaviorWizardAdapter.bodyContext(getFeatureProvider(), diagram, object, null, draft));
+		wizard.setCreationMode(false);
 		if (wizard.open() != Window.OK || initial.equals(wizard.getResult())) return;
 		if (object.eResource() != diagram.eResource() || !initial.equals(BehaviorWizardAdapter.snapshot(object))
 				|| !originalSource.equals(ModelGenerator.generateModel(getFeatureProvider(), diagram, null))) {

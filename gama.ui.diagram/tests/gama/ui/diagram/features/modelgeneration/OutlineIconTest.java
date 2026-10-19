@@ -38,14 +38,6 @@ public final class OutlineIconTest {
 			}
 		}
 		try (final var jar = new JarFile(args[0])) {
-			final var folder = jar.getJarEntry("icons_svg/light/navigator/files/folder.model.svg");
-			if (folder == null) throw new AssertionError("Missing shared palette folder");
-			try (final var stream = jar.getInputStream(folder)) {
-				final var images = new ImageLoader().load(stream);
-				if (images.length != 1 || images[0].width <= 0 || images[0].height <= 0) {
-					throw new AssertionError("Cannot decode palette folder SVG");
-				}
-			}
 			for (final String theme : List.of("light", "dark")) {
 				for (final String name : List.of("model", "species", "grid", "gui", "batch", "action", "aspect",
 						"reflex", "init", "abort", "display", "equation", "perceive", "state", "task", "rule", "unknown", "class", "test")) {
@@ -61,6 +53,6 @@ public final class OutlineIconTest {
 				}
 			}
 		}
-		System.out.println("PASS: 18 semantic node mappings, 38 shared light/dark outline SVGs and palette folder SVG");
+		System.out.println("PASS: 18 semantic node mappings, 38 shared light/dark outline SVGs");
 	}
 }

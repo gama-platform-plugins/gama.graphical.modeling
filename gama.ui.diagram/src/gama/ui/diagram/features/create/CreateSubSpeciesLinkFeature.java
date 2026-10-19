@@ -64,6 +64,7 @@ public class CreateSubSpeciesLinkFeature extends AbstractCreateSpeciesComponentL
 				true, SpeciesWizardAdapter.parentNames(source, null, classes),
 				SpeciesWizardAdapter.wizardContext(source, null, classes),
 				classes ? SpeciesWizard.Kind.CLASS : SpeciesWizard.Kind.SPECIES);
+		wizard.setCreationMode(true);
 		if (wizard.open() != Window.OK) return null;
 		
 	  	this.getDiagram().eResource().getContents().add(newSpecies);

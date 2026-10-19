@@ -47,6 +47,7 @@ public abstract class CreateBehaviorLinkFeature extends AbstractCreateSpeciesCom
 				BehaviorWizardAdapter.selectableKinds(kind),
 				draft -> BehaviorWizardAdapter.validate(getFeatureProvider(), diagram, null, source, draft),
 				draft -> BehaviorWizardAdapter.bodyContext(getFeatureProvider(), diagram, null, source, draft));
+		wizard.setCreationMode(true);
 		if (wizard.open() != Window.OK) return null;
 		if (source.eResource() != diagram.eResource()
 				|| !originalSource.equals(ModelGenerator.generateModel(getFeatureProvider(), diagram, null))) {

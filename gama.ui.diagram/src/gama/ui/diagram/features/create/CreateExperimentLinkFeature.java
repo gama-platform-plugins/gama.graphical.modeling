@@ -58,6 +58,7 @@ public abstract class CreateExperimentLinkFeature extends AbstractCreateSpeciesC
 					ActionWizardAdapter.typeNames(diagram), () -> ExperimentWizardAdapter.variableNames(null, world),
 					value -> ExperimentWizardAdapter.bodyContext(getFeatureProvider(), diagram, null, world, value),
 					() -> ExperimentWizardAdapter.parentNames(diagram, null));
+			wizard.setCreationMode(true);
 			if (wizard.open() != Window.OK) return null;
 			draft = wizard.getResult();
 			if (world.eResource() != diagram.eResource()

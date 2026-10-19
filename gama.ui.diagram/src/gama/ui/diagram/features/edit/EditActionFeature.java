@@ -46,6 +46,7 @@ public class EditActionFeature extends EditFeature {
 				draft -> ActionWizardAdapter.validate(getFeatureProvider(), diagram, action, null, draft),
 				ActionWizardAdapter.typeNames(diagram),
 				draft -> ActionWizardAdapter.bodyContext(getFeatureProvider(), diagram, action, null, draft));
+		wizard.setCreationMode(false);
 		if (wizard.open() != Window.OK || initial.equals(wizard.getResult())) return;
 		if (action.eResource() != diagram.eResource() || !initial.equals(ActionWizardAdapter.snapshot(action))
 				|| !originalSource.equals(ModelGenerator.generateModel(getFeatureProvider(), diagram, null))) {

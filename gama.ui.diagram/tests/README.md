@@ -63,9 +63,14 @@ The graphical editor uses `ExperimentToolbar` and `GamlEditorState` from `gama.u
 
 Node icons fit proportionally into 24-by-24 bounds, rather than clipping the SVG to the legacy 30-by-15 area. Editor-open migration also fixes existing icon bounds and scaling flags. `IconLayoutTest` exercises that migration through the common layout, checks that manual node positions are preserved, and checks actual Graphiti renderer scaling for square, wide and tall images. Compile it with the same target classpath/sourcepath and run its main class (on macOS, add `-XstartOnFirstThread`).
 
-All palette compartment headers reuse GAMA's light `navigator/files/folder.model` SVG instead of Graphiti's default folder.
+Palette section headers show a plain 16-pixel circle, `icons/palette/<color>.svg`, instead of a folder. Each is filled with the default node color of the items its section creates and stroked with that color's node text color: Agents neutral, Classes lavender, Agent features orange, Experiments blue, BDI Architecture green, Finite State Machine pink and Task-based Architecture green. Agent features and BDI Architecture create items of several colors, so they use their first tool's color: action and plan respectively. Tools keep their outline icons. `PaletteCircleTest` checks the SVG colors against `ColorDisplay`, decodes each file and checks the image IDs. Pass it the `gama.ui.diagram/icons/palette` directory, with the `org.eclipse.swt.svg` jar matching SWT placed first on the plain-Java classpath.
 
 ## Shared species wizard
+
+Diagram wizard entry points explicitly set creation or edit mode before opening.
+Shared dialogs use `Validate | Cancel | Create` for creation and
+`Validate | Cancel | Apply` for editing, with the existing acceptance/validation
+and undo behavior unchanged.
 
 Ordinary species boxes open the `SpeciesWizard` from the exported
 `gaml.compiler.ui.wizards.species` package in `gama.ui.editor`. The species-creation
@@ -225,7 +230,7 @@ GAMA otherwise replaces the earlier behavior, even when its keyword differs.
 
 Experiments use one `ExperimentWizard` from
 `gaml.compiler.ui.wizards.experiment`, with GUI, Batch and Test choices. The
-header places Name, Title, Type and Virtual on one row. Parent suggestions list
+header places Name, Title, Type, Parent and Virtual on one row. Parent suggestions list
 existing diagram experiments except the edited experiment and its descendants;
 Parent and Control remain editable to preserve external or plugin values.
 The palette offers each initial choice; the same dialog handles subsequent edits.

@@ -1,5 +1,7 @@
 package gama.ui.diagram.swt.image;
 
+import java.util.List;
+
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.graphiti.ui.platform.AbstractImageProvider;
 
@@ -45,16 +47,17 @@ public class GamaImageProvider extends AbstractImageProvider {
     public static final String IMG_TASK = PREFIX + "task";
     public static final String IMG_PLAN = PREFIX + "plan";
     public static final String IMG_RULE = PREFIX + "rule";
-    public static final String IMG_PALETTE_FOLDER = PREFIX + "palette.folder";
- 
-    
+    // Palette section circles, filled with the default node color of the items each section creates.
+    public static final String IMG_SECTION_NEUTRAL = PREFIX + "palette.section.neutral";
+    public static final String IMG_SECTION_CLASS = PREFIX + "palette.section.class";
+    public static final String IMG_SECTION_ORANGE = PREFIX + "palette.section.orange";
+    public static final String IMG_SECTION_GREEN = PREFIX + "palette.section.green";
+    public static final String IMG_SECTION_PINK = PREFIX + "palette.section.pink";
+    public static final String IMG_SECTION_BLUE = PREFIX + "palette.section.blue";
+    public static final List<String> SECTION_CIRCLES = List.of("neutral", "class", "orange", "green", "pink", "blue");
+
     @Override
     protected void addAvailableImages() {
-        final var bundle = Platform.getBundle("gama.ui.shared");
-        if (bundle == null) throw new IllegalStateException("Missing GAMA shared icon bundle");
-        final var folder = bundle.getEntry("icons_svg/light/navigator/files/folder.model.svg");
-        if (folder == null) throw new IllegalStateException("Missing GAMA model-folder icon");
-        addImageFilePath(IMG_PALETTE_FOLDER, folder.toExternalForm());
         // register the path for each image identifier
         addOutlineImage(IMG_WORLD, "model");
         addOutlineImage(IMG_SUBSPECIESLINK, "species");
@@ -76,6 +79,13 @@ public class GamaImageProvider extends AbstractImageProvider {
         addOutlineImage(IMG_TASK, "task");
         addOutlineImage(IMG_PLAN, "plan");
         addOutlineImage(IMG_RULE, "rule");
+        final var diagram = Platform.getBundle("gama.ui.diagram");
+        if (diagram == null) throw new IllegalStateException("Missing GAMA diagram bundle");
+        for (final String circle : SECTION_CIRCLES) {
+            final var url = diagram.getEntry("icons/palette/" + circle + ".svg");
+            if (url == null) throw new IllegalStateException("Missing palette section circle: " + circle);
+            addImageFilePath(PREFIX + "palette.section." + circle, url.toExternalForm());
+        }
     }
 
     private void addOutlineImage(final String id, final String keyword) {
