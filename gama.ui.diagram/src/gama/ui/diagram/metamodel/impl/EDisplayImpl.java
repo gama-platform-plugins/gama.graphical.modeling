@@ -39,11 +39,23 @@ import gama.ui.diagram.metamodel.GamaPackage;
  *   <li>{@link gama.ui.diagram.metamodel.impl.EDisplayImpl#getLayerList <em>Layer List</em>}</li>
  *   <li>{@link gama.ui.diagram.metamodel.impl.EDisplayImpl#getGamlCode <em>Gaml Code</em>}</li>
  *   <li>{@link gama.ui.diagram.metamodel.impl.EDisplayImpl#isDefineGamlCode <em>Define Gaml Code</em>}</li>
+ *   <li>{@link gama.ui.diagram.metamodel.impl.EDisplayImpl#getTrailingSource <em>Trailing Source</em>}</li>
  * </ul>
  *
  * @generated
  */
 public class EDisplayImpl extends EGamaObjectImpl implements EDisplay {
+	protected String trailingSource;
+
+	@Override public String getTrailingSource() { return trailingSource; }
+
+	@Override public void setTrailingSource(final String value) {
+		final String previous = trailingSource;
+		trailingSource = value;
+		if (eNotificationRequired()) {
+			eNotify(new ENotificationImpl(this, Notification.SET, GamaPackage.EDISPLAY__TRAILING_SOURCE, previous, value));
+		}
+	}
 	/**
 	 * The cached value of the '{@link #getLayers() <em>Layers</em>}' reference list.
 	 * <!-- begin-user-doc -->
@@ -245,6 +257,8 @@ public class EDisplayImpl extends EGamaObjectImpl implements EDisplay {
 	@Override
 	public Object eGet(int featureID, boolean resolve, boolean coreType) {
 		switch (featureID) {
+			case GamaPackage.EDISPLAY__TRAILING_SOURCE:
+				return getTrailingSource();
 			case GamaPackage.EDISPLAY__LAYERS:
 				return getLayers();
 			case GamaPackage.EDISPLAY__DISPLAY_LINK:
@@ -269,6 +283,9 @@ public class EDisplayImpl extends EGamaObjectImpl implements EDisplay {
 	@Override
 	public void eSet(int featureID, Object newValue) {
 		switch (featureID) {
+			case GamaPackage.EDISPLAY__TRAILING_SOURCE:
+				setTrailingSource((String) newValue);
+				return;
 			case GamaPackage.EDISPLAY__LAYERS:
 				getLayers().clear();
 				getLayers().addAll((Collection<? extends ELayer>)newValue);
@@ -298,6 +315,9 @@ public class EDisplayImpl extends EGamaObjectImpl implements EDisplay {
 	@Override
 	public void eUnset(int featureID) {
 		switch (featureID) {
+			case GamaPackage.EDISPLAY__TRAILING_SOURCE:
+				setTrailingSource(null);
+				return;
 			case GamaPackage.EDISPLAY__LAYERS:
 				getLayers().clear();
 				return;
@@ -325,6 +345,8 @@ public class EDisplayImpl extends EGamaObjectImpl implements EDisplay {
 	@Override
 	public boolean eIsSet(int featureID) {
 		switch (featureID) {
+			case GamaPackage.EDISPLAY__TRAILING_SOURCE:
+				return trailingSource != null;
 			case GamaPackage.EDISPLAY__LAYERS:
 				return layers != null && !layers.isEmpty();
 			case GamaPackage.EDISPLAY__DISPLAY_LINK:

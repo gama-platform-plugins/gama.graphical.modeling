@@ -110,6 +110,14 @@ public final class DiagramWizardSourceTest {
 			if (!errors.isEmpty()) throw new AssertionError(species.getName() + " preview:\n" + errors);
 			previews++;
 		}
+		final var contents = resource.getAllContents();
+		while (contents.hasNext()) {
+			if (!(contents.next() instanceof gama.ui.diagram.metamodel.EDisplay display)) continue;
+			final String source = DisplayWizardAdapter.candidateModel(fp, diagram, display, null, DisplayWizardAdapter.snapshot(display));
+			if (!source.equals(original)) throw new AssertionError(display.getName() + " unchanged display preview changed source");
+			if (parser.parse(new StringReader(source)).hasSyntaxErrors()) throw new AssertionError("Invalid display preview: " + display.getName());
+			previews++;
+		}
 		if (previews == 0) throw new AssertionError("No species/world/grid previews exercised");
 		System.out.println("PASS: " + previews + " unchanged wizard previews parse after "
 				+ (sourceMode ? "source-backed import and XMI save/reload" : "loading saved diagram"));

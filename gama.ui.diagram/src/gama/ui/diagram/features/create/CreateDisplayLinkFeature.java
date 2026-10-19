@@ -1,166 +1,87 @@
 package gama.ui.diagram.features.create;
 
-import gama.ui.diagram.editor.GamaDiagramEditor;
-import gama.ui.diagram.features.ExampleUtil;
-import gama.ui.diagram.features.add.AddDisplayFeature;
-import gama.ui.diagram.features.modelgeneration.ModelGenerator;
-import gama.ui.diagram.features.modelgeneration.ExperimentKind;
-import gama.ui.diagram.metamodel.EDisplay;
-import gama.ui.diagram.metamodel.EDisplayLink;
-import gama.ui.diagram.metamodel.EExperiment;
-import gama.ui.diagram.metamodel.ESpecies;
-import gama.ui.diagram.metamodel.ESubSpeciesLink;
-import gama.ui.diagram.swt.image.GamaImageProvider;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import org.eclipse.graphiti.features.IFeatureProvider;
-import org.eclipse.graphiti.features.context.IContext;
 import org.eclipse.graphiti.features.context.ICreateConnectionContext;
 import org.eclipse.graphiti.features.context.impl.AddConnectionContext;
 import org.eclipse.graphiti.features.context.impl.AddContext;
 import org.eclipse.graphiti.features.context.impl.CreateContext;
-import org.eclipse.graphiti.features.impl.AbstractCreateConnectionFeature;
-import org.eclipse.graphiti.mm.pictograms.Anchor;
-import org.eclipse.graphiti.mm.pictograms.AnchorContainer;
 import org.eclipse.graphiti.mm.pictograms.Connection;
-import org.eclipse.graphiti.mm.pictograms.PictogramElement;
 import org.eclipse.graphiti.services.Graphiti;
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.window.Window;
 
-public class CreateDisplayLinkFeature extends AbstractCreateConnectionFeature {
+import gama.ui.diagram.editor.GamaDiagramEditor;
+import gama.ui.diagram.features.ExampleUtil;
+import gama.ui.diagram.features.modelgeneration.ExperimentKind;
+import gama.ui.diagram.features.modelgeneration.ModelGenerator;
+import gama.ui.diagram.metamodel.EExperiment;
+import gama.ui.diagram.metamodel.GamaFactory;
+import gama.ui.diagram.swt.editFrame.DisplayWizardAdapter;
+import gama.ui.diagram.swt.image.GamaImageProvider;
+import gaml.compiler.ui.wizards.display.DisplayDraft;
+import gaml.compiler.ui.wizards.display.DisplayWizard;
 
-	  private static final String TITLE = "Create display";
-	  
-	  private static final String USER_QUESTION = "Enter new display name";
-	 
-	  public CreateDisplayLinkFeature(IFeatureProvider fp) {
-		// provide name and description for the UI, e.g. the palette
-		super(fp, "has the display", "Create display link");
-	}
+public class CreateDisplayLinkFeature extends AbstractCreateSpeciesComponentLinkFeature {
+	private boolean changed;
 
-	public boolean canCreate(ICreateConnectionContext context) {
-		EExperiment source = getEExperiment(context.getSourceAnchor());
-		if (source != null) {
-			return true;
-		}
-		return false;
-	}
-
-	public boolean canStartConnection(ICreateConnectionContext context) {
-		if (getEExperiment(context.getSourceAnchor()) != null) {
-			return true;
-		}
-		return false;
+	public CreateDisplayLinkFeature(final IFeatureProvider fp) {
+		super(fp, "has the display", "Create display settings and layers");
 	}
 
-	private EDisplay createEDisplay(ICreateConnectionContext context, boolean askName, EExperiment source) {
-		String newDisplayName = "my_display";
-		if (askName) {
-			newDisplayName = ExampleUtil.askString(TITLE, USER_QUESTION, "my_display");
-		    if (newDisplayName == null || newDisplayName.trim().length() == 0) {
-		    	return null;
-		    } 
-		}
-		 String initName = newDisplayName;
-		    List<String> names = new ArrayList<String>();
-		    for (EDisplayLink li : source.getDisplayLinks())names.add(li.getDisplay().getName());
-		    int cpt = 2;
-		    while (names.contains(newDisplayName)) {
-		    	newDisplayName = initName + cpt;
-		    	cpt++;
-		    }
-	    EDisplay newDisplay = gama.ui.diagram.metamodel.GamaFactory.eINSTANCE.createEDisplay();
-	    newDisplay.setDefineGamlCode(false);
-	    newDisplay.setError("");
-	    newDisplay.setHasError(false);
-		this.getDiagram().eResource().getContents().add(newDisplay);
-		newDisplay.setName(newDisplayName);
-		CreateContext ac = new CreateContext();
-		ac.setLocation(context.getTargetLocation().getX(), context.getTargetLocation().getY());
-		ac.setSize(0, 0);
-		ac.setTargetContainer(getDiagram());
-		return newDisplay;
-	}
-	
-	private PictogramElement addEDisplay(ICreateConnectionContext context, EDisplay Display) {
-		CreateContext cc = new CreateContext();
-		cc.setLocation(context.getTargetLocation().getX() - (int)(AddDisplayFeature.INIT_WIDTH/2.0), context.getTargetLocation().getY() - (int)(AddDisplayFeature.INIT_HEIGHT/2.0));
-		cc.setSize(0, 0);
-		cc.setTargetContainer(getDiagram());
-		return getFeatureProvider().addIfPossible(new AddContext(cc, Display));
-	}
-	
-	public Connection create(ICreateConnectionContext context) {
-		return create(context, true);
-	}
-	
-	public Connection create(ICreateConnectionContext context, boolean askName) {
-		Connection newConnection = null;
-		EExperiment source = getEExperiment(context.getSourceAnchor());
-		if (source == null) return null;
-		
-		EDisplay target = createEDisplay(context, askName, source);
-		if (source != null && target != null) {
-			PictogramElement targetpe = addEDisplay(context, target);
-			// create new business object
-			EDisplayLink eReference = createEReference(source, target);
-			//eReference.setModel(source.getModel());
-			getDiagram().eResource().getContents().add(eReference);
-			// add connection for business object
-			AddConnectionContext addContext = new AddConnectionContext(
-					context.getSourceAnchor(), getAnchor(targetpe));
-			addContext.setNewObject(eReference);
-			newConnection = (Connection) getFeatureProvider().addIfPossible(
-					addContext);
-			eReference.setExperiment(source);
-			eReference.setDisplay(target);
-			source.getDisplayLinks().add(eReference);
-			target.setDisplayLink(eReference);
-		}
-		GamaDiagramEditor diagramEditor = ((GamaDiagramEditor)ExampleUtil.getDiagramEditor(getFeatureProvider()));
-		diagramEditor.addEOject(target);
-		
-		return newConnection;
-	}
-
-	
-	private EExperiment getEExperiment(Anchor anchor) {
-		if (anchor != null) {
-			Object object = getBusinessObjectForPictogramElement(anchor
-					.getParent());
-			if (object instanceof EExperiment experiment && "gui".equals(ExperimentKind.of(experiment))) {
-				return experiment;
-			}
-		}
-		return null;
-	}
-	
-	protected Anchor getAnchor(PictogramElement targetpe) {
-		Anchor ret = null;
-		if (targetpe instanceof Anchor) {
-			ret = (Anchor) targetpe;
-		} else if (targetpe instanceof AnchorContainer) {
-			ret = Graphiti.getPeService().getChopboxAnchor((AnchorContainer) targetpe);
-		}
-		return ret;
-	}
-
-	
-	private EDisplayLink createEReference(EExperiment source, EDisplay target) {
-		EDisplayLink eReference = gama.ui.diagram.metamodel.GamaFactory.eINSTANCE.createEDisplayLink();
-		eReference.setSource(source);
-		eReference.setTarget(target);
-		return eReference;
-	}
+	@Override public String getCreateImageId() { return GamaImageProvider.IMG_DISPLAYLINK; }
+	@Override public boolean hasDoneChanges() { return changed; }
 
 	@Override
-	public String getCreateImageId() {
-		return GamaImageProvider.IMG_DISPLAYLINK;
+	public boolean canCreate(final ICreateConnectionContext context) {
+		return getESpecies(context.getSourceAnchor()) instanceof EExperiment experiment
+				&& "gui".equals(ExperimentKind.of(experiment));
 	}
-	
-	public void execute(IContext context) {
-		super.execute(context);
-		ModelGenerator.modelValidation(getFeatureProvider(), getDiagram());
+
+	@Override public boolean canStartConnection(final ICreateConnectionContext context) { return canCreate(context); }
+	@Override public Connection create(final ICreateConnectionContext context) { return create(context, true); }
+
+	public Connection create(final ICreateConnectionContext context, final boolean ask) {
+		changed = false;
+		if (!canCreate(context)) return null;
+		final var experiment = (EExperiment) getESpecies(context.getSourceAnchor());
+		final var diagram = getDiagram();
+		final var editor = ExampleUtil.getDiagramEditor(getFeatureProvider());
+		final String originalSource = ModelGenerator.generateModel(getFeatureProvider(), diagram, null);
+		DisplayDraft draft = DisplayDraft.empty();
+		if (ask) {
+			final var wizard = new DisplayWizard(editor.getSite().getShell(), draft,
+					value -> DisplayWizardAdapter.validate(getFeatureProvider(), diagram, null, experiment, value),
+					() -> DisplayWizardAdapter.speciesNames(diagram, false),
+					() -> DisplayWizardAdapter.speciesNames(diagram, true),
+					value -> DisplayWizardAdapter.context(getFeatureProvider(), diagram, null, experiment, value),
+					species -> DisplayWizardAdapter.aspectNames(diagram, species));
+			if (wizard.open() != Window.OK) return null;
+			draft = wizard.getResult();
+			if (experiment.eResource() != diagram.eResource()
+					|| !originalSource.equals(ModelGenerator.generateModel(getFeatureProvider(), diagram, null))) {
+				MessageDialog.openError(editor.getSite().getShell(), "Display context changed",
+						"The model changed while the wizard was open. Reopen it before creating the display.");
+				return null;
+			}
+		}
+		final var target = GamaFactory.eINSTANCE.createEDisplay();
+		final var relation = DisplayWizardAdapter.attach(experiment, target);
+		DisplayWizardAdapter.apply(target, draft);
+		final var create = new CreateContext();
+		create.setTargetContainer(diagram);
+		create.setLocation(context.getTargetLocation().getX(), context.getTargetLocation().getY());
+		final var shape = getFeatureProvider().addIfPossible(new AddContext(create, target));
+		if (shape == null) throw new IllegalStateException("Could not draw the display.");
+		final var box = shape.getGraphicsAlgorithm();
+		Graphiti.getGaService().setLocation(box, context.getTargetLocation().getX() - box.getWidth() / 2,
+				context.getTargetLocation().getY() - box.getHeight() / 2);
+		final var add = new AddConnectionContext(context.getSourceAnchor(), getAnchor(shape));
+		add.setNewObject(relation);
+		final var connection = (Connection) getFeatureProvider().addIfPossible(add);
+		if (connection == null) throw new IllegalStateException("Could not draw the display link.");
+		((GamaDiagramEditor) editor).addEOject(target);
+		ModelGenerator.modelValidation(getFeatureProvider(), diagram);
+		changed = true;
+		return connection;
 	}
 }

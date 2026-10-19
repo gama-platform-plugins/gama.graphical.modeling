@@ -46,7 +46,8 @@ public class EditExperimentFeature extends EditFeature {
 		final var wizard = new ExperimentWizard(editor.getSite().getShell(), initial,
 				draft -> ExperimentWizardAdapter.validate(getFeatureProvider(), diagram, experiment, null, draft),
 				ActionWizardAdapter.typeNames(diagram), () -> ExperimentWizardAdapter.variableNames(experiment, world),
-				draft -> ExperimentWizardAdapter.bodyContext(getFeatureProvider(), diagram, experiment, null, draft));
+				draft -> ExperimentWizardAdapter.bodyContext(getFeatureProvider(), diagram, experiment, null, draft),
+				() -> ExperimentWizardAdapter.parentNames(diagram, experiment));
 		if (wizard.open() != Window.OK || initial.equals(wizard.getResult())) return;
 		if (experiment.eResource() != diagram.eResource()
 				|| !initial.equals(ExperimentWizardAdapter.snapshot(experiment))

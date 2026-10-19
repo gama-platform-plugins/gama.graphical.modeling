@@ -186,6 +186,30 @@ public final class ExperimentWizardAdapter {
 		return List.copyOf(names);
 	}
 
+	public static List<String> parentNames(final Diagram diagram, final EExperiment edited) {
+		final List<EExperiment> experiments = new ArrayList<>();
+		final var contents = diagram.eResource().getAllContents();
+		while (contents.hasNext()) {
+			if (contents.next() instanceof EExperiment experiment) experiments.add(experiment);
+		}
+		return experiments.stream().filter(candidate -> {
+			final var visited = new java.util.HashSet<gama.ui.diagram.metamodel.ESpecies>();
+			for (var current = (gama.ui.diagram.metamodel.ESpecies) candidate; current != null;) {
+				if (current == edited || !visited.add(current)) return false;
+				if (current.getInheritsFrom() != null) {
+					current = current.getInheritsFrom();
+				} else {
+					final String parent = current.getFacets().stream().filter(f -> "parent".equals(f.getName()))
+							.map(f -> text(f.getValue())).findFirst().orElse("");
+					final var matches = experiments.stream().filter(e -> parent.equals(e.getName())).toList();
+					if (matches.size() > 1) return false;
+					current = matches.isEmpty() ? null : matches.get(0);
+				}
+			}
+			return true;
+		}).map(EExperiment::getName).filter(name -> name != null && !name.isBlank()).distinct().sorted().toList();
+	}
+
 	public static String validate(final IFeatureProvider fp, final Diagram diagram, final EExperiment experiment,
 			final EWorldAgent creationOwner, final ExperimentDraft draft) {
 		final String error = draftError(experiment, draft);

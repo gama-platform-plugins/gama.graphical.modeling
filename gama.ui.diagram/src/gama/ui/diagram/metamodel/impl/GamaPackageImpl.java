@@ -1074,6 +1074,10 @@ public class GamaPackageImpl extends EPackageImpl implements GamaPackage {
 		return (EAttribute)eDisplayEClass.getEStructuralFeatures().get(2);
 	}
 
+	public EAttribute getEDisplay_TrailingSource() {
+		return (EAttribute)eDisplayEClass.getEStructuralFeatures().get(5);
+	}
+
 	/**
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -2238,6 +2242,7 @@ public class GamaPackageImpl extends EPackageImpl implements GamaPackage {
 		createEAttribute(eDisplayEClass, EDISPLAY__LAYER_LIST);
 		createEAttribute(eDisplayEClass, EDISPLAY__GAML_CODE);
 		createEAttribute(eDisplayEClass, EDISPLAY__DEFINE_GAML_CODE);
+		createEAttribute(eDisplayEClass, EDISPLAY__TRAILING_SOURCE);
 
 		eVariableEClass = createEClass(EVARIABLE);
 		createEAttribute(eVariableEClass, EVARIABLE__INIT);
@@ -2535,6 +2540,7 @@ public class GamaPackageImpl extends EPackageImpl implements GamaPackage {
 		initEAttribute(getEDisplay_LayerList(), ecorePackage.getEString(), "layerList", null, 0, -1, EDisplay.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEAttribute(getEDisplay_GamlCode(), ecorePackage.getEString(), "gamlCode", null, 0, 1, EDisplay.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEAttribute(getEDisplay_DefineGamlCode(), ecorePackage.getEBoolean(), "defineGamlCode", null, 0, 1, EDisplay.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEAttribute(getEDisplay_TrailingSource(), ecorePackage.getEString(), "trailingSource", null, 0, 1, EDisplay.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(eVariableEClass, EVariable.class, "EVariable", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 		initEAttribute(getEVariable_Init(), ecorePackage.getEString(), "init", null, 0, 1, EVariable.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);

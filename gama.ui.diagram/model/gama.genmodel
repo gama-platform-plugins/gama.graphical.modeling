@@ -95,6 +95,7 @@
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gama.ecore#//EDisplay/layerList"/>
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gama.ecore#//EDisplay/gamlCode"/>
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gama.ecore#//EDisplay/defineGamlCode"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gama.ecore#//EDisplay/trailingSource"/>
     </genClasses>
     <genClasses ecoreClass="gama.ecore#//EVariable">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute gama.ecore#//EVariable/init"/>

@@ -347,7 +347,7 @@ public final class DescriptionDiagramImporter {
 			if (!isDeclaredHere(child, output)) continue;
 			if ("display".equals(child.getKeyword())) {
 				final EDisplay display = factory.createEDisplay();
-				display.setName(child.getName());
+				display.setName(label(child, child.getName()));
 				display.setDefineGamlCode(true);
 				display.setGamlCode(body(child));
 				copyFacets(child, display, Set.of("name"));
@@ -395,6 +395,10 @@ public final class DescriptionDiagramImporter {
 		if (value == null && source instanceof gaml.compiler.gaml.GamlDefinition) {
 			final var nodes = NodeModelUtils.findNodesForFeature(source,
 					gaml.compiler.gaml.GamlPackage.Literals.GAML_DEFINITION__NAME);
+			if (!nodes.isEmpty()) value = NodeModelUtils.getTokenText(nodes.get(0));
+		}
+		if (value == null && source instanceof gaml.compiler.gaml.S_Display) {
+			final var nodes = NodeModelUtils.findNodesForFeature(source, gaml.compiler.gaml.GamlPackage.Literals.SDISPLAY__NAME);
 			if (!nodes.isEmpty()) value = NodeModelUtils.getTokenText(nodes.get(0));
 		}
 		if (value != null && value.length() >= 2 && (value.charAt(0) == '"' || value.charAt(0) == '\'')

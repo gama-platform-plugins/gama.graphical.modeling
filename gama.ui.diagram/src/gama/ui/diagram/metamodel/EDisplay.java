@@ -22,6 +22,7 @@ import org.eclipse.emf.common.util.EList;
  *   <li>{@link gama.ui.diagram.metamodel.EDisplay#getLayerList <em>Layer List</em>}</li>
  *   <li>{@link gama.ui.diagram.metamodel.EDisplay#getGamlCode <em>Gaml Code</em>}</li>
  *   <li>{@link gama.ui.diagram.metamodel.EDisplay#isDefineGamlCode <em>Define Gaml Code</em>}</li>
+ *   <li>{@link gama.ui.diagram.metamodel.EDisplay#getTrailingSource <em>Trailing Source</em>}</li>
  * </ul>
  *
  * @see gama.ui.diagram.metamodel.GamaPackage#getEDisplay()
@@ -29,6 +30,14 @@ import org.eclipse.emf.common.util.EList;
  * @generated
  */
 public interface EDisplay extends EGamaObject {
+	/**
+	 * Source after the last structured layer, including trailing comments.
+	 * @model
+	 */
+	String getTrailingSource();
+
+	void setTrailingSource(String value);
+
 	/**
 	 * Returns the value of the '<em><b>Layers</b></em>' reference list.
 	 * The list contents are of type {@link gama.ui.diagram.metamodel.ELayer}.

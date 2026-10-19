@@ -2031,7 +2031,9 @@ public interface GamaPackage extends EPackage {
 	 * @generated
 	 * @ordered
 	 */
-	int EDISPLAY_FEATURE_COUNT = EGAMA_OBJECT_FEATURE_COUNT + 5;
+	int EDISPLAY_FEATURE_COUNT = EGAMA_OBJECT_FEATURE_COUNT + 6;
+
+	int EDISPLAY__TRAILING_SOURCE = EGAMA_OBJECT_FEATURE_COUNT + 5;
 
 	/**
 	 * The meta object id for the '{@link gama.ui.diagram.metamodel.impl.EVariableImpl <em>EVariable</em>}' class.
@@ -5328,6 +5330,8 @@ public interface GamaPackage extends EPackage {
 	 */
 	EAttribute getEDisplay_LayerList();
 
+	EAttribute getEDisplay_TrailingSource();
+
 	/**
 	 * Returns the meta object for the attribute '{@link gama.ui.diagram.metamodel.EDisplay#getGamlCode <em>Gaml Code</em>}'.
 	 * <!-- begin-user-doc -->
@@ -7253,6 +7257,8 @@ public interface GamaPackage extends EPackage {
 		 * @generated
 		 */
 		EAttribute EDISPLAY__LAYER_LIST = eINSTANCE.getEDisplay_LayerList();
+
+		EAttribute EDISPLAY__TRAILING_SOURCE = eINSTANCE.getEDisplay_TrailingSource();
 
 		/**
 		 * The meta object literal for the '<em><b>Gaml Code</b></em>' attribute feature.

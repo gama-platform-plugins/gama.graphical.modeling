@@ -79,6 +79,13 @@ public final class BehaviorWizardAdapterTest {
 		check(original.contains("anonymous one") && original.contains("anonymous two"), "Anonymous reflexes collapsed");
 		check(worker.getStateLinks().size() == 2 && original.contains("state finished"), "Bodyless state lost");
 		final var noSource = new org.eclipse.graphiti.features.context.impl.CreateConnectionContext();
+		check("Add reflex...".equals(new gama.ui.diagram.features.create.CreateReflexLinkFeature(fp).getCreateName()),
+				"Diagram reflex tool label should be Add reflex...");
+		for (final var kind : DiagramBehavior.values()) {
+			check(BehaviorWizardAdapter.selectableKinds(kind).equals(kind.lifecycle() ? BehaviorKind.LIFECYCLE
+					: java.util.Set.of(BehaviorKind.of(kind.keyword()))),
+					"Diagram editor exposes unrelated kinds for " + kind.keyword());
+		}
 		for (final var tool : List.of(
 				new gama.ui.diagram.features.create.CreateReflexLinkFeature(fp),
 				new gama.ui.diagram.features.create.CreateStateLinkFeature(fp),

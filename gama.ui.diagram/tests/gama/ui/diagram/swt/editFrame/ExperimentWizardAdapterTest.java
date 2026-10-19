@@ -74,6 +74,8 @@ public final class ExperimentWizardAdapterTest {
 		final String original = ModelGenerator.generateModel(fp, diagram, null);
 		check(!parser.parse(new StringReader(original)).hasSyntaxErrors(), "Imported experiments generate invalid GAML");
 		final var experiments = model.getObjects().stream().filter(EExperiment.class::isInstance).map(EExperiment.class::cast).toList();
+		check(ExperimentWizardAdapter.parentNames(diagram, null).equals(List.of("checks", "exploration", "interactive")),
+				"Creation parent suggestions must include existing experiments only");
 		for (final var experiment : experiments) {
 			final var initial = ExperimentWizardAdapter.snapshot(experiment);
 			final var initContext = ExperimentWizardAdapter.bodyContext(fp, diagram, experiment, null, initial);
@@ -207,6 +209,10 @@ public final class ExperimentWizardAdapterTest {
 			});
 			check(test.getInheritsFrom() == batch && batch.getInheritingLinks().get(0).getChild() == test,
 					"Experiment parent facet did not update references");
+			check(ExperimentWizardAdapter.parentNames(diagram, batch).equals(List.of("interactive")),
+					"Parent suggestions include self or descendant");
+			check(ExperimentWizardAdapter.parentNames(diagram, test).equals(List.of("exploration", "interactive")),
+					"Parent suggestions lost valid ancestors or unrelated experiments");
 			final var batchInitial = ExperimentWizardAdapter.snapshot(batch);
 			final var cyclic = new ExperimentDraft(batchInitial.name(), "batch",
 					List.of(new Facet("parent", test.getName())), batchInitial.variables(), batchInitial.init(),

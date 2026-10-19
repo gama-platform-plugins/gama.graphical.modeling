@@ -308,7 +308,8 @@ public final class ClassDiagramTest {
 		for (final var object : List.of(GamaFactory.eINSTANCE.createEReflex(), GamaFactory.eINSTANCE.createEState(),
 				GamaFactory.eINSTANCE.createETask(), GamaFactory.eINSTANCE.createEPlan(),
 				GamaFactory.eINSTANCE.createEPerceive(), GamaFactory.eINSTANCE.createERule(),
-				GamaFactory.eINSTANCE.createEGUIExperiment(), GamaFactory.eINSTANCE.createEBatchExperiment())) {
+				GamaFactory.eINSTANCE.createEGUIExperiment(), GamaFactory.eINSTANCE.createEBatchExperiment(),
+				GamaFactory.eINSTANCE.createEDisplay())) {
 			final var shape = Graphiti.getPeCreateService().createContainerShape(diagram, true);
 			final var objectLink = PictogramsFactory.eINSTANCE.createPictogramLink();
 			objectLink.getBusinessObjects().add(object);
@@ -324,10 +325,25 @@ public final class ClassDiagramTest {
 			final var feature = behavior.getDoubleClickFeature(click);
 			check(object instanceof gama.ui.diagram.metamodel.EExperiment
 					? feature instanceof gama.ui.diagram.features.edit.EditExperimentFeature
-					: feature instanceof gama.ui.diagram.features.edit.EditBehaviorFeature,
+					: object instanceof gama.ui.diagram.metamodel.EDisplay
+							? feature instanceof gama.ui.diagram.features.edit.EditDisplayFeature
+							: feature instanceof gama.ui.diagram.features.edit.EditBehaviorFeature,
 					"Double-click does not open shared wizard: " + object.eClass().getName());
 			check(feature.canExecute(new org.eclipse.graphiti.features.context.impl.CustomContext(
 					new PictogramElement[] { shape })), "Shared edit feature rejects its own node type");
+			if (object instanceof gama.ui.diagram.metamodel.EExperiment experiment) {
+				final var anchor = Graphiti.getPeCreateService().createChopboxAnchor(shape);
+				final var creation = new CreateConnectionContext();
+				creation.setSourceAnchor(anchor);
+				final var tool = new gama.ui.diagram.features.create.CreateDisplayLinkFeature(provider);
+				check(tool.canCreate(creation) == (experiment instanceof gama.ui.diagram.metamodel.EGUIExperiment),
+						"Display creation eligibility ignores experiment type");
+				gama.ui.diagram.features.modelgeneration.ExperimentKind.set(experiment, "gui");
+				check(tool.canStartConnection(creation), "Legacy experiment switched to GUI cannot create display");
+				gama.ui.diagram.features.modelgeneration.ExperimentKind.set(experiment, "test");
+				check(!tool.canCreate(creation) && tool.create(creation) == null && !tool.hasDoneChanges(),
+						"Ineligible display creation reports a change");
+			}
 		}
 		final var delete = new org.eclipse.graphiti.features.context.impl.DeleteContext(classAnchor.getParent());
 		check(provider.getDeleteFeature(delete) instanceof gama.ui.diagram.features.others.CustomDeleteFeature

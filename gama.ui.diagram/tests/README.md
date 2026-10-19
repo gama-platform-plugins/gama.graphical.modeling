@@ -207,9 +207,13 @@ or compiled. Anonymous reflexes are supported without collapsing multiple
 declarations or changing their execution order when one is renamed.
 Equations use a different grammar and retain their existing editor.
 
-The reflex palette tool offers Reflex / Init / Abort; editing any of those nodes
+The `Add reflex...` palette tool offers Reflex / Init / Abort; editing any of those nodes
 offers the same selector. Conversion retains the node, links, name, facets and
 body. The additive `EReflex.kind` attribute defaults to `reflex` for older files.
+The Reflex Editor places Kind, Name and the inline When expression on one row;
+When displays `true` by default without adding a facet on an unchanged edit.
+State, Rule, Task, Plan and Perceive use dedicated, kind-locked editors in the
+diagram. The text editor's Reflex Editor only exposes the three lifecycle kinds.
 Lifecycle nodes use their matching outline icons and relationship labels.
 Only cyclic reflexes appear in the species reflex-order table. Import keeps the
 first anonymous unconditional init in the existing owner init field; named,
@@ -221,7 +225,10 @@ GAMA otherwise replaces the earlier behavior, even when its keyword differs.
 
 Experiments use one `ExperimentWizard` from
 `gaml.compiler.ui.wizards.experiment`, with GUI, Batch and Test choices. The
-palette offers each initial choice; the same dialog handles subsequent edits.
+header places Name, Title, Type and Virtual on one row. Parent suggestions list
+existing diagram experiments except the edited experiment and its descendants;
+Parent and Control remain editable to preserve external or plugin values.
+The palette offers each initial choice; the same dialog handles subsequent edits.
 Common facets and type-specific sections reorganize without discarding hidden
 settings. The form also edits attributes, init, parameters and monitors.
 Parameter/monitor titles are plain text at the draft boundary; generators
@@ -239,7 +246,40 @@ Unmodeled experiment declarations, including test blocks and batch methods,
 are stored in the additive `EExperiment.gamlCode` attribute. Existing feature
 and classifier IDs are unchanged. Type switches retain these declarations and
 existing displays/monitors; the contextual compiler decides compatibility.
-Aspects and display dialogs are not replaced by shared forms.
+Aspect dialogs are not replaced by shared forms.
+
+## Shared displays and layers
+
+Display creation and double-click editing use `DisplayWizard` from
+`gaml.compiler.ui.wizards.display`, with Settings and Layers tabs. Layers are
+ordered entries with type-specific controls for species, agents, grids, images
+and text. Text uses a simple `graphics { draw ...; }` declaration: `text` is
+not a GAML display-layer keyword. Charts and other unsupported declarations
+remain editable raw GAML; their structured editors and aspect editing are
+outside this phase.
+Legacy grid line-color controls generate the current compiler's `border:`
+facet. Aspect suggestions include only declared/inherited aspects, not an
+assumed `default` aspect.
+
+`DisplayWizardAdapter` parses existing raw displays and legacy structured
+layers without changing the live diagram. Row IDs identify existing layer
+objects, independently of their labels. Reordering reuses those objects;
+duplication creates a new one. Existing rows retain their legacy fields;
+edited/new rows use the existing `ELayer.gamlCode` for the full source
+declaration. `EDisplay.trailingSource` is additive storage for final body
+whitespace/comments; older feature and classifier IDs are unchanged.
+Header-only changes leave raw display bodies untouched.
+The shared renderer inserts required newline boundaries when a raw line
+comment would otherwise swallow a following layer or closing brace.
+
+The adapter uses a detached full-model preview and isolated validation URI.
+Cancel/no-op edits do not change the diagram; accepted edits, including layer
+add/remove/reorder, participate in one undoable operation. Creation remains
+restricted to GUI experiments, including legacy batch objects switched to GUI.
+`DisplayWizardAdapterTest` covers drafts, source preservation, identities,
+ordering, creation, undo/redo and XMI. `DisplayLayerGenerationTest` covers the
+legacy layer generator and escaped labels. Compile them alongside the
+description-backed importer fixture and run like the other standalone suites.
 
 Both adapters use detached complete-model previews, isolated validation URIs,
 stale-context guards and a single undoable accepted edit. Cancel/no-op edits

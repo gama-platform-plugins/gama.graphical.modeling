@@ -187,8 +187,12 @@ public class CustomDeleteFeature extends DefaultDeleteFeature {
 		}
 		if (bo instanceof EAspect)
 			deleteBusinessObject(((EAspect) bo).getAspectLinks().get(0));
-		else if (bo instanceof EDisplay)
-			deleteBusinessObject(((EDisplay) bo).getDisplayLink());
+		else if (bo instanceof EDisplay display) {
+			for (final var layer : List.copyOf(display.getLayers())) deleteBusinessObject(layer);
+			deleteBusinessObject(display.getDisplayLink());
+		} else if (bo instanceof gama.ui.diagram.metamodel.ELayer layer) {
+			for (final var data : List.copyOf(layer.getChartlayers())) deleteBusinessObject(data);
+		}
 		else if (bo instanceof EReflex)
 			deleteBusinessObject(((EReflex) bo).getReflexLinks().get(0));
 		else if (bo instanceof EAction)

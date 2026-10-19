@@ -828,27 +828,37 @@ public class ModelGenerator {
 		if (link == null || link.getDisplay() == null) return "";
 		final EDisplay disp = link.getDisplay();
 		StringBuilder model = new StringBuilder().append(EL).append("\t\t");
-		model.append("display ").append(manageName(disp.getName()));
+		model.append("display ").append(gaml.compiler.ui.wizards.experiment.ExperimentDraft.quoteName(disp.getName()));
 		for (final EFacet facet : disp.getFacets()) {
-			if (facet.getValue().replace(" ", "").isEmpty()) { continue; }
+			if (facet.getValue() == null || facet.getValue().isBlank()) { continue; }
 			model.append(" ").append(facet.getName()).append(":").append(facet.getValue());
 
 		}
 
 		model.append(" {").append(EL);
+		model.append(displayBody(disp));
+		model.append("\t\t}");
+		return model.toString();
+	}
+
+	public static String displayBody(final EDisplay disp) {
+		final var model = new StringBuilder();
 		if (disp.isDefineGamlCode()) {
 			final String code = disp.getGamlCode();
-			if (code != null && !code.isEmpty()) {
-				/*
-				 * for (final String line : code.split("\n")) { if (line.replace(" ", "").replace("\t", "").isEmpty())
-				 * continue; model += line; }
-				 */
-				model.append(code);
-			}
+			if (code != null) model.append(code);
 		} else {
-
 			for (final ELayer lay : disp.getLayers()) {
-				if (lay.getType() == null) { continue; }
+				model.append(defineLayer(lay));
+			}
+			if (disp.getTrailingSource() != null) model.append(disp.getTrailingSource());
+		}
+		return model.toString();
+	}
+
+	public static String defineLayer(final ELayer lay) {
+		if (lay.getGamlCode() != null && !lay.getGamlCode().isBlank()) return lay.getGamlCode();
+		final var model = new StringBuilder();
+		if (lay.getType() != null) {
 				model.append("\n\t\t\t");
 				if ("species".equals(lay.getType())) {
 					model.append(lay.getType()).append(" ").append(lay.getSpecies()).append(
@@ -858,21 +868,21 @@ public class ModelGenerator {
 					model.append(lay.getType()).append(" ").append(lay.getGrid());
 					if (lay.getIsColorCst() == null || lay.getIsColorCst()) {
 						if (lay.getColorRBG().size() == 3 && lay.isShowLines()) {
-							model.append(" lines:rgb(").append(lay.getColorRBG().get(0)).append(",")
+							model.append(" border:rgb(").append(lay.getColorRBG().get(0)).append(",")
 									.append(lay.getColorRBG().get(1)).append(",").append(lay.getColorRBG().get(2))
 									.append(")");
 						}
 					} else if (lay.getColor() != null && !"rgb(255,255,255)".equals(lay.getColor())
 							&& !lay.getColor().isEmpty()) {
-						model.append(" lines:").append(lay.getColor());
+						model.append(" border:").append(lay.getColor());
 					}
 				} else if ("agents".equals(lay.getType())) {
-					model.append(lay.getType()).append(" \"").append(lay.getName()).append("\" value:")
+					model.append(lay.getType()).append(" ").append(gama.api.utils.StringUtils.toGamlString(lay.getName())).append(" value:")
 							.append(lay.getAgents()).append(lay.getAspect() == null || lay.getAspect().isEmpty() ? ""
 									: " aspect: " + lay.getAspect());
 				} else if ("image".equals(lay.getType())) {
-					model.append(lay.getType()).append("\"").append(lay.getFile()).append("\"")
-							.append(lay.getSize().isEmpty() ? "" : " size: " + lay.getSize());
+					model.append(lay.getType()).append(" ").append(gama.api.utils.StringUtils.toGamlString(lay.getFile()))
+							.append(lay.getSize() == null || lay.getSize().isBlank() ? "" : " size: " + lay.getSize());
 					if (lay.getIsColorCst() == null || lay.getIsColorCst()) {
 						if (lay.getColorRBG().size() == 3
 								&& (!"255".equals(lay.getColorRBG().get(0)) || !"255".equals(lay.getColorRBG().get(1))
@@ -886,8 +896,9 @@ public class ModelGenerator {
 						model.append(" color:").append(lay.getColor());
 					}
 				} else if ("text".equals(lay.getType())) {
-					model.append(lay.getType()).append("\"").append(lay.getText()).append("\"")
-							.append(lay.getSize().isEmpty() ? "" : " size: " + lay.getSize());
+					model.append("graphics ").append(gama.api.utils.StringUtils.toGamlString(lay.getName()))
+							.append(" { draw ").append(gama.api.utils.StringUtils.toGamlString(lay.getText()))
+							.append(lay.getSize() == null || lay.getSize().isBlank() ? "" : " size: " + lay.getSize());
 					if (lay.getIsColorCst() == null || lay.getIsColorCst()) {
 						if (lay.getColorRBG().size() == 3
 								&& (!"255".equals(lay.getColorRBG().get(0)) || !"255".equals(lay.getColorRBG().get(1))
@@ -913,19 +924,19 @@ public class ModelGenerator {
 							&& !lay.getColor().isEmpty()) {
 						background = " background:" + lay.getColor();
 					}
-					model.append(lay.getType()).append(" \"").append(lay.getName()).append("\" type:")
+					model.append(lay.getType()).append(" ").append(gama.api.utils.StringUtils.toGamlString(lay.getName())).append(" type:")
 							.append(lay.getChart_type()).append(background);
 				}
 
 				for (final EFacet facet : lay.getFacets()) {
-					if (facet.getValue().replace(" ", "").isEmpty()) { continue; }
+					if (facet.getValue() == null || facet.getValue().isBlank()) { continue; }
 					model.append(" ").append(facet.getName()).append(":").append(facet.getValue());
 				}
 				if ("chart".equals(lay.getType())) {
 					model.append("{").append(EL);
 					if (lay.getChartlayers() != null && !lay.getChartlayers().isEmpty()) {
 						for (final EChartLayer cl : lay.getChartlayers()) {
-							model.append("\t\t\t\tdata \"").append(cl.getName()).append("\" style:")
+							model.append("\t\t\t\tdata ").append(gama.api.utils.StringUtils.toGamlString(cl.getName())).append(" style:")
 									.append(cl.getStyle()).append(" value:")
 									.append(cl.getValue() == null || cl.getValue().isEmpty() ? "0.0" : cl.getValue())
 									.append(cl.getColor() == null || cl.getColor().isEmpty() ? ""
@@ -935,11 +946,9 @@ public class ModelGenerator {
 					}
 					model.append(EL).append("\t\t\t}").append(EL);
 				} else {
-					model.append(";").append(EL);
+					model.append(";").append("text".equals(lay.getType()) ? " }" : "").append(EL);
 				}
-			}
 		}
-		model.append("\t\t}");
 		return model.toString();
 	}
 
