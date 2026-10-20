@@ -65,6 +65,31 @@ public final class DisplayLayerGenerationTest {
 		display.setDefineGamlCode(true);
 		display.setGamlCode(raw);
 		if (!raw.equals(ModelGenerator.displayBody(display))) throw new AssertionError("Raw display body changed");
-		System.out.println("PASS: six legacy layer kinds, escaped labels, declaration order and raw display body");
+		display.setDefineGamlCode(false);
+		display.getLayers().clear();
+		final List<String> blocks = List.of(
+				"\n// mesh\nmesh [[1.0,2.0],[3.0,4.0]];\n",
+				"\ngraphics \"drawing\" { draw circle(1) color:#red; draw square(2); }\n",
+				"\noverlay \"HUD\" { draw \"Cycle\" at:{0,0}; }\n",
+				"\nspecies people { aspect alternate { draw circle(2); } }\n",
+				"\nagents \"selected\" value:people { draw circle(3); }\n",
+				"\nevent \"mouse_down\" { write \"clicked\"; }\n");
+		for (int i = 0; i < blocks.size(); i++) {
+			final var layer = factory.createELayer();
+			layer.setType(List.of("mesh", "graphics", "overlay", "species", "agents", "raw").get(i));
+			layer.setGamlCode(blocks.get(i));
+			display.getLayers().add(layer);
+			if (!blocks.get(i).equals(ModelGenerator.defineLayer(layer))) {
+				throw new AssertionError("Source-backed " + layer.getType() + " body was regenerated");
+			}
+		}
+		display.setTrailingSource("\n// trailing display comment\n");
+		if (!(String.join("", blocks) + display.getTrailingSource()).equals(ModelGenerator.displayBody(display))) {
+			throw new AssertionError("Source-backed blocks changed order or trailing comments");
+		}
+		final var parsed = parser.parse(new StringReader("model layer_blocks\nspecies people;\nexperiment run type:gui { output {"
+				+ ModelGenerator.defineDisplay(relation) + "} }"));
+		if (parsed.hasSyntaxErrors()) throw new AssertionError("Source-backed mixed layer blocks do not parse");
+		System.out.println("PASS: six legacy kinds, six source-backed layer blocks, labels, order and retained raw bodies");
 	}
 }

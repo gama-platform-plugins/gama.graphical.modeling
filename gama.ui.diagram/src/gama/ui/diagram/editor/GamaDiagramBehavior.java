@@ -5,6 +5,7 @@ import org.eclipse.gef.ContextMenuProvider;
 import org.eclipse.gef.editparts.LayerManager;
 import org.eclipse.graphiti.mm.pictograms.PictogramElement;
 import org.eclipse.graphiti.ui.editor.DefaultRefreshBehavior;
+import org.eclipse.graphiti.ui.editor.DefaultPaletteBehavior;
 import org.eclipse.graphiti.ui.editor.DiagramBehavior;
 import org.eclipse.graphiti.ui.editor.IDiagramContainerUI;
 
@@ -14,6 +15,11 @@ public class GamaDiagramBehavior extends DiagramBehavior {
 	public GamaDiagramBehavior(IDiagramContainerUI diagramContainer) {
 		super(diagramContainer);	
 		initDefaultBehaviors();
+	}
+
+	@Override
+	protected DefaultPaletteBehavior createPaletteBehaviour() {
+		return new GamaPaletteBehavior(this);
 	}
 
 	@Override

@@ -107,7 +107,7 @@ public final class DisplayWizardAdapterTest {
 		check(DisplayWizardAdapter.validate(fp, diagram, display, null, duplicateName).contains("already exists"), "Duplicate display name accepted");
 		final var kindChange = new ArrayList<>(initial.layers());
 		final var first = initial.layers().get(0);
-		kindChange.set(0, new LayerDraft(first.id(), LayerKind.GRID, first.expression(), first.facets(), List.of(), first.source()));
+		kindChange.set(0, new LayerDraft(first.id(), LayerKind.GRID, first.expression(), first.facets(), List.of(), first.source(), first.body()));
 		check(DisplayWizardAdapter.validate(fp, diagram, display, null, layers(initial, kindChange)).contains("cannot change"),
 				"Existing layer kind conversion not refused");
 		final var invalidRaw = LayerDraft.empty(LayerKind.RAW);
@@ -165,7 +165,8 @@ public final class DisplayWizardAdapterTest {
 							case AGENTS -> "\"Updated agents\"";
 							default -> row.expression();
 						}, row.facets(), row.textFacets(),
-						row.kind() == LayerKind.RAW ? row.source().replace("\"Size\"", "\"Updated chart\"") : row.source());
+						row.kind() == LayerKind.RAW ? row.source().replace("\"Size\"", "\"Updated chart\"") : row.source(),
+						row.body());
 				final var rows = new ArrayList<>(materialized.layers());
 				rows.set(i, edited);
 				final String preview = DisplayWizardAdapter.candidateModel(fp, diagram, display, null, layers(materialized, rows));
@@ -229,7 +230,151 @@ public final class DisplayWizardAdapterTest {
 		}
 		legacyLayers(parser);
 		layerBoundaries(parser);
+		organizingMixedLayers(parser);
 		System.out.println("PASS: " + checks + " display/layer import, source, ordering, identity, creation, undo and persistence checks");
+	}
+
+	private static void organizingMixedLayers(final IParser parser) throws Exception {
+		final String body = """
+
+				// background image
+				image "background.png" refresh:false;
+				// elevation mesh
+				mesh [[1.0,2.0],[3.0,4.0]];
+				// display definitions ordered alongside layers
+				camera "main" location:{10,10,10} target:{0,0,0};
+				light "ambient" type:ambient intensity:0.5;
+				rotation 0.0 axis:{0,0,1};
+				// species-local aspect
+				species people { aspect visible { draw circle(2); } }
+				// selected agents drawing
+				agents "chosen" value:people { draw square(1); }
+				// chart stays opaque
+				chart "History" type:series { data "N" value:cycle; }
+				// interaction stays opaque
+				event "mouse_down" { write "clicked"; }
+				// arbitrary drawing stays intact
+				graphics "drawing" { draw circle(1) color:#red; draw square(2) color:#blue; }
+				// overlay body stays intact
+				overlay "HUD" { draw "Cycle" at:{0,0}; }
+				// display footer
+				""";
+		final var display = GamaFactory.eINSTANCE.createEDisplay();
+		display.setName("organization");
+		display.setDefineGamlCode(true);
+		display.setGamlCode(body);
+		final var resource = new XMIResourceImpl(URI.createURI("memory:/layer-organization.gadl"));
+		resource.getContents().add(display);
+		final var domain = TransactionalEditingDomain.Factory.INSTANCE.createEditingDomain();
+		try {
+			domain.getResourceSet().getResources().add(resource);
+			final var original = DisplayWizardAdapter.snapshot(display);
+			check(original.layers().size() == 11, "Mixed display organization lost declaration boundaries");
+			check(original.layers().stream().map(LayerDraft::kind).map(Enum::name).toList().equals(
+					List.of("IMAGE", "MESH", "CAMERA", "LIGHT", "ROTATION", "SPECIES", "AGENTS", "RAW", "RAW",
+							"GRAPHICS", "OVERLAY")), "Display declarations do not reach their kind-specific layer forms");
+			check(original.layers().stream().anyMatch(row -> row.kind() == LayerKind.MESH),
+					"Mesh layers are not exposed to the shared editor");
+			for (final var row : original.layers()) {
+				if (row.kind() == LayerKind.GRAPHICS || row.kind() == LayerKind.OVERLAY
+						|| row.kind() == LayerKind.SPECIES || row.kind() == LayerKind.AGENTS) {
+					check(!row.body().isBlank() && row.body().contains("draw "),
+							"Diagram snapshot dropped the editable block body for " + row.kind());
+				}
+			}
+			final var reordered = new ArrayList<>(original.layers());
+			java.util.Collections.reverse(reordered);
+			final var added = DisplaySource.parseLayer("\n// new foreground\nimage \"foreground.png\";",
+					"new-foreground", parser);
+			reordered.add(added);
+			final var draft = layers(original, reordered);
+			final String expected = DisplaySource.renderBody(draft.layers(), draft.trailingSource(), parser);
+			check(display.isDefineGamlCode() && body.equals(display.getGamlCode()),
+					"Organizing detached rows changed the source before acceptance");
+			domain.getCommandStack().execute(new RecordingCommand(domain) {
+				@Override protected void doExecute() { DisplayWizardAdapter.apply(display, draft); }
+			});
+			check(expected.equals(ModelGenerator.displayBody(display)), "Accepted mixed layer order differs from preview");
+			final var objects = List.copyOf(display.getLayers());
+			check(objects.size() == 12, "Adding a layer dropped an existing chart/event/drawing");
+			for (int i = 0; i < reordered.size(); i++) {
+				check(ModelGenerator.defineLayer(objects.get(i)).contains(reordered.get(i).source().strip()),
+						"Organization changed the contents or comments of layer " + i);
+			}
+			check(ModelGenerator.displayBody(display).endsWith(original.trailingSource()), "Organization lost trailing comments");
+			domain.getCommandStack().undo();
+			check(display.isDefineGamlCode() && body.equals(display.getGamlCode()) && display.getLayers().isEmpty(),
+					"Undo did not restore raw display source");
+			domain.getCommandStack().redo();
+			check(display.getLayers().equals(objects), "Redo replaced the materialized layer objects");
+			final var materialized = DisplayWizardAdapter.snapshot(display);
+			final var reversed = new ArrayList<>(materialized.layers());
+			java.util.Collections.reverse(reversed);
+			domain.getCommandStack().execute(new RecordingCommand(domain) {
+				@Override protected void doExecute() { DisplayWizardAdapter.apply(display, layers(materialized, reversed)); }
+			});
+			final var reverseObjects = new ArrayList<>(objects);
+			java.util.Collections.reverse(reverseObjects);
+			check(display.getLayers().equals(reverseObjects), "Reordering mixed materialized layers replaced identities");
+			final var beforeBodyEdit = DisplayWizardAdapter.snapshot(display);
+			for (final var row : beforeBodyEdit.layers()) {
+				if (row.body().isBlank()) continue;
+				final var bodyRows = new ArrayList<>(beforeBodyEdit.layers());
+				final String editedBody = "\n// edited " + row.kind() + " layer body\n" + row.body();
+				bodyRows.set(bodyRows.indexOf(row), new LayerDraft(row.id(), row.kind(), row.expression(),
+						row.facets(), row.textFacets(), row.source(), editedBody));
+				domain.getCommandStack().execute(new RecordingCommand(domain) {
+					@Override protected void doExecute() { DisplayWizardAdapter.apply(display, layers(beforeBodyEdit, bodyRows)); }
+				});
+				final var bodyResult = DisplayWizardAdapter.snapshot(display);
+				check(bodyResult.layers().stream().filter(value -> value.id().equals(row.id())).findFirst().orElseThrow()
+						.body().equals(editedBody), row.kind() + " block body was not independently editable");
+				check(display.getLayers().equals(reverseObjects), row.kind() + " body edit replaced layer identities");
+				for (int i = 0; i < beforeBodyEdit.layers().size(); i++) {
+					if (!beforeBodyEdit.layers().get(i).id().equals(row.id())) {
+						check(beforeBodyEdit.layers().get(i).equals(bodyResult.layers().get(i)),
+								row.kind() + " body edit changed an adjacent layer");
+					}
+				}
+				domain.getCommandStack().undo();
+				check(beforeBodyEdit.equals(DisplayWizardAdapter.snapshot(display)), row.kind() + " body undo changed source");
+			}
+			final var graphics = beforeBodyEdit.layers().stream().filter(row -> row.kind() == LayerKind.GRAPHICS)
+					.findFirst().orElseThrow();
+			final var editedRows = new ArrayList<>(beforeBodyEdit.layers());
+			editedRows.set(editedRows.indexOf(graphics), new LayerDraft(graphics.id(), graphics.kind(),
+					graphics.expression(), graphics.facets(), graphics.textFacets(), graphics.source(),
+					graphics.body().replace("circle(1)", "circle(3)")));
+			domain.getCommandStack().execute(new RecordingCommand(domain) {
+				@Override protected void doExecute() { DisplayWizardAdapter.apply(display, layers(beforeBodyEdit, editedRows)); }
+			});
+			check(display.getLayers().equals(reverseObjects), "Editing a graphics body replaced layer identities");
+			check(ModelGenerator.displayBody(display).contains("circle(3)"), "Shared layer body edit was not applied");
+			final var afterBodyEdit = DisplayWizardAdapter.snapshot(display);
+			for (int i = 0; i < beforeBodyEdit.layers().size(); i++) {
+				if (beforeBodyEdit.layers().get(i).kind() == LayerKind.RAW) {
+					check(beforeBodyEdit.layers().get(i).source().equals(afterBodyEdit.layers().get(i).source()),
+							"Editing graphics changed neighboring chart/event source");
+				}
+			}
+			domain.getCommandStack().undo();
+			check(beforeBodyEdit.equals(DisplayWizardAdapter.snapshot(display)), "Graphics body undo lost draft/source data");
+			domain.getCommandStack().redo();
+			final var bytes = new java.io.ByteArrayOutputStream();
+			resource.save(bytes, Map.of());
+			final var loaded = new XMIResourceImpl();
+			loaded.load(new java.io.ByteArrayInputStream(bytes.toByteArray()), Map.of());
+			final var restored = (EDisplay) loaded.getContents().get(0);
+			check(ModelGenerator.displayBody(display).equals(ModelGenerator.displayBody(restored)),
+					"Saving organized chart/event/drawing layers lost source");
+			check(DisplayWizardAdapter.snapshot(display).equals(DisplayWizardAdapter.snapshot(restored)),
+					"Saving organized mixed layers lost their editable drafts");
+			final String declaration = "model organization experiment run type:gui { output { display organization {"
+					+ ModelGenerator.displayBody(restored) + "} } }";
+			check(!parser.parse(new StringReader(declaration)).hasSyntaxErrors(), "Organized mixed layer output is invalid GAML");
+		} finally {
+			domain.dispose();
+		}
 	}
 
 	private static void layerBoundaries(final IParser parser) {
@@ -295,7 +440,8 @@ public final class DisplayWizardAdapterTest {
 			});
 			check(text.getGamlCode() == null && chart.getGamlCode() == null, "No-op migrated legacy fields");
 			final var row = initial.layers().get(0);
-			final var editedRow = new LayerDraft(row.id(), row.kind(), "\"Edited label\"", row.facets(), row.textFacets(), row.source());
+			final var editedRow = new LayerDraft(row.id(), row.kind(), "\"Edited label\"", row.facets(), row.textFacets(),
+					row.source(), row.body());
 			final var edited = layers(initial, List.of(editedRow, initial.layers().get(1)));
 			domain.getCommandStack().execute(new RecordingCommand(domain) {
 				@Override protected void doExecute() { DisplayWizardAdapter.apply(display, edited); }

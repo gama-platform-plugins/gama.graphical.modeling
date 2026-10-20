@@ -25,7 +25,7 @@ public abstract class CreateBehaviorLinkFeature extends AbstractCreateSpeciesCom
 	private boolean changed;
 
 	protected CreateBehaviorLinkFeature(final IFeatureProvider fp, final DiagramBehavior kind, final String imageId) {
-		super(fp, kind == DiagramBehavior.REFLEX ? "Add reflex..." : "has the " + kind.keyword(),
+		super(fp, "Add " + kind.keyword() + "...",
 				kind.lifecycle() ? "Create a reflex, init or abort behavior" : "Create " + kind.keyword() + " link");
 		this.kind = kind;
 		this.imageId = imageId;

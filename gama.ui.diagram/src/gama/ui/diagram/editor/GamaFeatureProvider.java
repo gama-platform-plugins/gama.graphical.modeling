@@ -283,11 +283,13 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 	@Override
 	public ICreateConnectionFeature[] getCreateConnectionFeatures() {
 		return new ICreateConnectionFeature[] { new CreateSubSpeciesLinkFeature(this),
+				new CreateSubGridLinkFeature(this),
 				new CreateClassLinkFeature(this), new CreateClassInheritingLinkFeature(this),
-				new CreateSubGridLinkFeature(this), new CreateInheritingLinkFeature(this),
+				new CreateGuiExperimentLinkFeature(this),
+				new CreateInheritingLinkFeature(this),
 				new CreateActionLinkFeature(this), new CreateReflexLinkFeature(this), new CreateAspectLinkFeature(this),
-				new CreateDisplayLinkFeature(this), new CreateBatchExperimentLinkFeature(this),
-				new CreateGuiExperimentLinkFeature(this), new CreateTestExperimentLinkFeature(this), new CreatePlanLinkFeature(this),
+				new CreateDisplayLinkFeature(this),
+				new CreateBatchExperimentLinkFeature(this), new CreateTestExperimentLinkFeature(this), new CreatePlanLinkFeature(this),
 				new CreateTaskLinkFeature(this), new CreateStateLinkFeature(this), new CreateRuleLinkFeature(this),
 				new CreateEquationLinkFeature(this), new CreatePerceiveLinkFeature(this) };
 	}

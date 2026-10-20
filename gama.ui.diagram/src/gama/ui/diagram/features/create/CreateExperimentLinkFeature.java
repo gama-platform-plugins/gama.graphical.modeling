@@ -27,7 +27,8 @@ public abstract class CreateExperimentLinkFeature extends AbstractCreateSpeciesC
 	private boolean changed;
 
 	protected CreateExperimentLinkFeature(final IFeatureProvider fp, final String type, final String image) {
-		super(fp, "is composed of a " + type.toUpperCase() + " experiment", "Create a new " + type + " experiment");
+		super(fp, "gui".equals(type) ? "Add experiment..." : "Add " + type + " experiment...",
+				"Create a new experiment");
 		this.type = type;
 		this.image = image;
 	}

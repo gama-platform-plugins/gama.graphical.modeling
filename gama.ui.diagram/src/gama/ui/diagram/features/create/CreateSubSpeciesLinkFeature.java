@@ -34,7 +34,7 @@ public class CreateSubSpeciesLinkFeature extends AbstractCreateSpeciesComponentL
 	private final boolean classes;
 
 	protected CreateSubSpeciesLinkFeature(final IFeatureProvider fp, final boolean classes) {
-		super(fp, classes ? "has class" : "is composed of a species",
+		super(fp, classes ? "Add class..." : "Add species...",
 				classes ? "Create a class belonging to the world" : "Create a new species");
 		this.classes = classes;
 	}
@@ -130,7 +130,7 @@ public class CreateSubSpeciesLinkFeature extends AbstractCreateSpeciesComponentL
 
 	@Override
 	public String getCreateImageId() {
-		return classes ? GamaImageProvider.IMG_CLASS : GamaImageProvider.IMG_SUBSPECIESLINK;
+		return classes ? GamaImageProvider.IMG_CREATE_CLASS : GamaImageProvider.IMG_SUBSPECIESLINK;
 	}
 	
 	public void execute(IContext context) {

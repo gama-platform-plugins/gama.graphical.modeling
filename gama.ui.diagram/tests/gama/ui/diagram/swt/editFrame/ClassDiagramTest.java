@@ -259,24 +259,45 @@ public final class ClassDiagramTest {
 		final var palette = java.util.Arrays.asList(behavior.getPalette());
 		final var classes = palette.stream().filter(c -> "Classes".equals(c.getLabel())).findFirst().orElseThrow();
 		check(classes.getToolEntries().stream().map(org.eclipse.graphiti.palette.IToolEntry::getLabel).toList()
-				.equals(List.of("has class", "is parent of", "has the action")), "Classes palette is missing its class/action tools");
-		check(palette.stream().filter(c -> "Agent features".equals(c.getLabel())).findFirst().orElseThrow()
-				.getToolEntries().stream().anyMatch(t -> "has the action".equals(t.getLabel())),
-				"Species action creation disappeared from Agent features");
-		check(palette.get(1) == classes, "Classes palette is not after Agents");
+				.equals(List.of("Parent of...", "Add action...")), "Classes palette has unexpected tools");
+		final var expectedTools = java.util.Map.of(
+				"World", List.of("Add species...", "Add grid...", "Add class...", "Add experiment...", "Parent of..."),
+				"Classes", List.of("Parent of...", "Add action..."),
+				"Species", List.of("Add action...", "Add reflex...", "Add aspect...", "Add equation..."),
+				"Experiments", List.of("Add display..."),
+				"BDI Architecture", List.of("Add plan...", "Add rule...", "Add perceive..."),
+				"Finite State Machine", List.of("Add state..."),
+				"Task-based Architecture", List.of("Add task..."));
+		for (final var section : palette) {
+			check(section.getToolEntries().stream().map(org.eclipse.graphiti.palette.IToolEntry::getLabel).toList()
+					.equals(expectedTools.get(section.getLabel())), "Unexpected tools in " + section.getLabel());
+		}
+		check(palette.stream().map(org.eclipse.graphiti.palette.IPaletteCompartmentEntry::getLabel).toList()
+				.equals(List.of("World", "Classes", "Species", "Experiments", "BDI Architecture",
+						"Finite State Machine", "Task-based Architecture")), "Palette section order changed");
+		check(palette.get(1) == classes, "Classes palette is not after World");
 		final var tools = palette.stream().flatMap(c -> c.getToolEntries().stream()).toList();
 		check(!tools.isEmpty() && tools.stream().noneMatch(t -> t.getIconId() == null
 				|| t.getIconId().contains("palette.section")), "A palette tool lost its outline icon");
-		check(tools.stream().filter(t -> "has class".equals(t.getLabel())).allMatch(
-				t -> gama.ui.diagram.swt.image.GamaImageProvider.IMG_CLASS.equals(t.getIconId())),
-				"Class tool does not use the class outline icon");
-		final var sections = java.util.Map.of("Agents", "neutral", "Classes", "class", "Agent features", "orange",
+		check(tools.stream().filter(t -> "Add class...".equals(t.getLabel())).count() == 1
+				&& tools.stream().filter(t -> "Add class...".equals(t.getLabel())).allMatch(
+				t -> gama.ui.diagram.swt.image.GamaImageProvider.IMG_CREATE_CLASS.equals(t.getIconId())),
+				"Class creation is duplicated or does not use its simplified palette icon");
+		check(tools.stream().filter(t -> t.getLabel().startsWith("Add ")).allMatch(t -> t.getLabel().endsWith("...")),
+				"A creation command is missing its ellipsis");
+		final var experimentTool = (org.eclipse.graphiti.palette.IConnectionCreationToolEntry) palette.get(0)
+				.getToolEntries().stream().filter(t -> "Add experiment...".equals(t.getLabel())).findFirst().orElseThrow();
+		check(experimentTool.getCreateConnectionFeatures().size() == 1
+				&& experimentTool.getCreateConnectionFeatures().get(0)
+						instanceof gama.ui.diagram.features.create.CreateGuiExperimentLinkFeature,
+				"Unified experiment tool does not open the shared type-selecting wizard");
+		final var sections = java.util.Map.of("World", "neutral", "Classes", "class", "Species", "orange",
 				"Experiments", "blue", "BDI Architecture", "green", "Finite State Machine", "pink",
 				"Task-based Architecture", "green");
 		check(palette.size() == sections.size() && palette.stream().allMatch(c -> ("gama.ui.diagram.palette.section."
 				+ sections.get(c.getLabel())).equals(c.getIconId())), "Palette sections do not use their colored circles");
-		check(palette.get(0).getToolEntries().stream().noneMatch(t -> "has class".equals(t.getLabel())),
-				"Class creation also appears in Agents");
+		check(palette.get(0).getToolEntries().stream().anyMatch(t -> "Add class...".equals(t.getLabel())),
+				"Class creation is missing in World");
 		final var actionContext = new CreateConnectionContext();
 		actionContext.setSourceAnchor(classAnchor);
 		check(java.util.Arrays.stream(provider.getDragAndDropFeatures(
@@ -314,8 +335,11 @@ public final class ClassDiagramTest {
 		check(behavior.getDoubleClickFeature(actionClick) instanceof gama.ui.diagram.features.edit.EditActionFeature,
 				"Action double-click is not wired to shared wizard feature");
 		final var experiments = palette.stream().filter(c -> "Experiments".equals(c.getLabel())).findFirst().orElseThrow();
-		check(experiments.getToolEntries().stream().anyMatch(tool -> tool.getLabel().contains("TEST experiment")),
-				"Test experiment is missing from the actual palette");
+		check(experiments.getToolEntries().stream().map(org.eclipse.graphiti.palette.IToolEntry::getLabel).toList()
+				.equals(List.of("Add display...")), "Experiments contains tools other than Add display...");
+		check(java.util.Arrays.stream(provider.getCreateConnectionFeatures()).anyMatch(
+				feature -> feature instanceof gama.ui.diagram.features.create.CreateTestExperimentLinkFeature),
+				"Test experiment support was removed instead of just hiding its palette tool");
 		for (final var object : List.of(GamaFactory.eINSTANCE.createEReflex(), GamaFactory.eINSTANCE.createEState(),
 				GamaFactory.eINSTANCE.createETask(), GamaFactory.eINSTANCE.createEPlan(),
 				GamaFactory.eINSTANCE.createEPerceive(), GamaFactory.eINSTANCE.createERule(),

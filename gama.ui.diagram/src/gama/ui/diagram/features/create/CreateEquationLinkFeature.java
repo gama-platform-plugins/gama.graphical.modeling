@@ -31,7 +31,7 @@ public class CreateEquationLinkFeature extends AbstractCreateSpeciesComponentLin
  
     public CreateEquationLinkFeature(IFeatureProvider fp) {
 		// provide name and description for the UI, e.g. the palette
-		super(fp, "has the equation", "Create equation link");
+		super(fp, "Add equation...", "Create equation link");
 	}
 
     private EEquation createEEquation(ICreateConnectionContext context, ESpecies source) {

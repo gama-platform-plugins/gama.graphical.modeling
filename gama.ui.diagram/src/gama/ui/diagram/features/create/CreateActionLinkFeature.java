@@ -45,7 +45,7 @@ public class CreateActionLinkFeature extends AbstractCreateSpeciesComponentLinkF
 	 */
 	public CreateActionLinkFeature(final IFeatureProvider fp) {
 		// provide name and description for the UI, e.g. the palette
-		super(fp, "has the action", "Create action link");
+		super(fp, "Add action...", "Create action link");
 	}
 
 	@Override

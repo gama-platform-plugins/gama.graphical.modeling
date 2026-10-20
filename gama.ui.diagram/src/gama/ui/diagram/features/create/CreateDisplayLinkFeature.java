@@ -25,7 +25,7 @@ public class CreateDisplayLinkFeature extends AbstractCreateSpeciesComponentLink
 	private boolean changed;
 
 	public CreateDisplayLinkFeature(final IFeatureProvider fp) {
-		super(fp, "has the display", "Create display settings and layers");
+		super(fp, "Add display...", "Create display settings and layers");
 	}
 
 	@Override public String getCreateImageId() { return GamaImageProvider.IMG_DISPLAYLINK; }

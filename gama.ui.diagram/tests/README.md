@@ -63,7 +63,11 @@ The graphical editor uses `ExperimentToolbar` and `GamlEditorState` from `gama.u
 
 Node icons fit proportionally into 24-by-24 bounds, rather than clipping the SVG to the legacy 30-by-15 area. Editor-open migration also fixes existing icon bounds and scaling flags. `IconLayoutTest` exercises that migration through the common layout, checks that manual node positions are preserved, and checks actual Graphiti renderer scaling for square, wide and tall images. Compile it with the same target classpath/sourcepath and run its main class (on macOS, add `-XstartOnFirstThread`).
 
-Palette section headers show a plain 16-pixel circle, `icons/palette/<color>.svg`, instead of a folder. Each is filled with the default node color of the items its section creates and stroked with that color's node text color: Agents neutral, Classes lavender, Agent features orange, Experiments blue, BDI Architecture green, Finite State Machine pink and Task-based Architecture green. Agent features and BDI Architecture create items of several colors, so they use their first tool's color: action and plan respectively. Tools keep their outline icons. `PaletteCircleTest` checks the SVG colors against `ColorDisplay`, decodes each file and checks the image IDs. Pass it the `gama.ui.diagram/icons/palette` directory, with the `org.eclipse.swt.svg` jar matching SWT placed first on the plain-Java classpath.
+Palette section headers show a plain 16-pixel circle, `icons/palette/<color>.svg`, instead of a folder: World neutral, Classes lavender, Species orange, Experiments blue, BDI Architecture green, Finite State Machine pink and Task-based Architecture green. Mixed sections use a representative node color (species for World, action for Species, plan for BDI Architecture). Tools keep their outline icons. `PaletteCircleTest` checks the SVG colors against `ColorDisplay`, decodes each file and checks the image IDs. Pass it the `gama.ui.diagram/icons/palette` directory, with the `org.eclipse.swt.svg` jar matching SWT placed first on the plain-Java classpath.
+
+The flyout title is **Selection**, with no title icon; its tools are **Single selection** and **Multiple selection**, retaining GEF's original tool implementations and default selection. `GamaPaletteBehavior` reapplies those labels after Graphiti refreshes the palette. GEF has no title-text API: `GamaPaletteComposite` replaces only the native title canvas's painting, tooltip and accessible text, leaving docking/drag listeners and the pin button intact. An unsupported GEF title structure fails explicitly rather than silently leaving the old header. `PalettePresentationTest` checks the GEF title class contract, actual SWT title pixels (no icon), retained interaction listeners and selection tools, including refresh.
+
+The creation sections, in order, are **World**, **Classes**, **Species**, **Experiments**, **BDI Architecture**, **Finite State Machine** and **Task-based Architecture**. World offers **Add species...**, **Add grid...**, **Add class...**, **Add experiment...** and **Parent of...**, in that order. Class creation appears only in World and uses a simplified neutral-gray UML icon (`icons/palette/add-class.svg`) matching the other tools' size and color; class node icons are unchanged. Classes contains **Parent of...** and **Add action...**. Species offers **Add action...**, **Add reflex...**, **Add aspect...** and **Add equation...**. Experiments contains only **Add display...**. Every creation command ends in `...`. The single experiment command starts with GUI selected; GUI, Batch and Test remain selectable in its shared wizard. Palette labels do not change relation captions in diagrams. `ClassDiagramTest` checks exact section/tool lists, the single experiment command and icon wiring. `PaletteCircleTest` also decodes the class creation icon and checks its size and neutral color.
 
 ## Shared species wizard
 
@@ -157,7 +161,7 @@ java --enable-native-access=ALL-UNNAMED -cp "$classes:$GAMA_TARGET_CLASSPATH" \
 
 ## Shared action wizard
 
-Action creation from **Agent features** or **Classes**, and double-click editing
+Action creation from **Species** or **Classes**, and double-click editing
 of an action box, use `ActionWizard` from
 `gaml.compiler.ui.wizards.action` in `gama.ui.editor`. Rebuild that bundle along
 with this plugin. The old incremental action frame is no longer used by these
@@ -233,7 +237,7 @@ Experiments use one `ExperimentWizard` from
 header places Name, Title, Type, Parent and Virtual on one row. Parent suggestions list
 existing diagram experiments except the edited experiment and its descendants;
 Parent and Control remain editable to preserve external or plugin values.
-The palette offers each initial choice; the same dialog handles subsequent edits.
+World offers a single **Add experiment...** command; its dialog supports GUI, Batch and Test and subsequent type changes.
 Common facets and type-specific sections reorganize without discarding hidden
 settings. The form also edits attributes, init, parameters and monitors.
 Parameter/monitor titles are plain text at the draft boundary; generators
@@ -257,11 +261,15 @@ Aspect dialogs are not replaced by shared forms.
 
 Display creation and double-click editing use `DisplayWizard` from
 `gaml.compiler.ui.wizards.display`, with Settings and Layers tabs. Layers are
-ordered entries with type-specific controls for species, agents, grids, images
-and text. Text uses a simple `graphics { draw ...; }` declaration: `text` is
-not a GAML display-layer keyword. Charts and other unsupported declarations
-remain editable raw GAML; their structured editors and aspect editing are
-outside this phase.
+ordered entries; Add and Edit open the shared `LayerWizard`, with kind-specific
+forms for species, agents, grids, images, meshes, graphics, overlays and text.
+Camera, light and rotation definitions are organized alongside layers and use
+their own forms; validation still enforces renderer-specific restrictions.
+Text uses a simple `graphics { draw ...; }` declaration: `text` is not a GAML
+display-layer keyword. Graphics/overlay and supported agent/species blocks
+carry editable block bodies. Charts, events and other unsupported declarations
+remain source-preserving rows, excluded from the new layer editors and creation
+choices. They can still be moved or explicitly removed.
 Legacy grid line-color controls generate the current compiler's `border:`
 facet. Aspect suggestions include only declared/inherited aspects, not an
 assumed `default` aspect.
@@ -273,7 +281,9 @@ duplication creates a new one. Existing rows retain their legacy fields;
 edited/new rows use the existing `ELayer.gamlCode` for the full source
 declaration. `EDisplay.trailingSource` is additive storage for final body
 whitespace/comments; older feature and classifier IDs are unchanged.
-Header-only changes leave raw display bodies untouched.
+Header-only changes leave raw display bodies untouched. The adapter preserves
+`LayerDraft.body()` when assigning row identities, so editable drawing bodies
+survive snapshots, previews and acceptance independently of header fields.
 The shared renderer inserts required newline boundaries when a raw line
 comment would otherwise swallow a following layer or closing brace.
 
@@ -282,7 +292,8 @@ Cancel/no-op edits do not change the diagram; accepted edits, including layer
 add/remove/reorder, participate in one undoable operation. Creation remains
 restricted to GUI experiments, including legacy batch objects switched to GUI.
 `DisplayWizardAdapterTest` covers drafts, source preservation, identities,
-ordering, creation, undo/redo and XMI. `DisplayLayerGenerationTest` covers the
+ordering, creation, undo/redo and XMI, including mixed graphics/overlay/mesh,
+chart/event retention and graphics-body changes. `DisplayLayerGenerationTest` covers the
 legacy layer generator and escaped labels. Compile them alongside the
 description-backed importer fixture and run like the other standalone suites.
 
@@ -306,9 +317,9 @@ imported from class descriptions (not executable objects), including the model's
 class visitor, and generated as top-level `class` declarations without an agent
 `init` block.
 
-The **Classes** palette compartment offers **has class**, **is parent of** and
-**has the action**. Action creation uses the same service as species and remains
-available in **Agent features** too.
+The **Classes** palette compartment offers **Parent of...** and
+**Add action...**. **Add class...** is available only in **World**. Action creation uses
+the same service as species and remains available in **Species** too.
 Only the world can own classes. Class inheritance is class-only, defaults to
 `object`, and excludes self/descendants; species and grids cannot inherit classes
 or `object`. Class boxes use a lavender fill and the shared class outline icon;

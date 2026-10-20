@@ -29,6 +29,7 @@ public class GamaImageProvider extends AbstractImageProvider {
  
     public static final String IMG_SUBSPECIESLINK= PREFIX + "subspecieslink";
     public static final String IMG_CLASS = PREFIX + "class";
+    public static final String IMG_CREATE_CLASS = PREFIX + "palette.create.class";
     public static final String IMG_SUBGRIDLINK= PREFIX + "subgridlink";
     public static final String IMG_ACTIONLINK= PREFIX + "actionlink";
     public static final String IMG_ASPECTLINK= PREFIX + "aspectlink";
@@ -81,6 +82,9 @@ public class GamaImageProvider extends AbstractImageProvider {
         addOutlineImage(IMG_RULE, "rule");
         final var diagram = Platform.getBundle("gama.ui.diagram");
         if (diagram == null) throw new IllegalStateException("Missing GAMA diagram bundle");
+        final var classIcon = diagram.getEntry("icons/palette/add-class.svg");
+        if (classIcon == null) throw new IllegalStateException("Missing class creation icon");
+        addImageFilePath(IMG_CREATE_CLASS, classIcon.toExternalForm());
         for (final String circle : SECTION_CIRCLES) {
             final var url = diagram.getEntry("icons/palette/" + circle + ".svg");
             if (url == null) throw new IllegalStateException("Missing palette section circle: " + circle);

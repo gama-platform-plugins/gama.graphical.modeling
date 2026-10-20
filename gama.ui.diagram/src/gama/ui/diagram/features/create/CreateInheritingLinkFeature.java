@@ -23,7 +23,7 @@ public class CreateInheritingLinkFeature extends AbstractCreateSpeciesComponentL
 
 	  protected CreateInheritingLinkFeature(final IFeatureProvider fp, final boolean classes) {
           // provide name and description for the UI, e.g. the palette
-          super(fp, "is parent of", classes ? "The source class is parent of the target class"
+          super(fp, "Parent of...", classes ? "The source class is parent of the target class"
                   : "The source species is parent of the target species");
           this.classes = classes;
   }

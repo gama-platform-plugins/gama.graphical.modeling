@@ -38,7 +38,8 @@ public final class DisplayWizardAdapter {
 	}
 
 	private static LayerDraft identified(final LayerDraft layer, final int index) {
-		return new LayerDraft("layer:" + index, layer.kind(), layer.expression(), layer.facets(), layer.textFacets(), layer.source());
+		return new LayerDraft("layer:" + index, layer.kind(), layer.expression(), layer.facets(), layer.textFacets(),
+				layer.source(), layer.body());
 	}
 
 	public static DisplayDraft snapshot(final EDisplay display) {

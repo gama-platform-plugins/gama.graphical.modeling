@@ -40,7 +40,29 @@ public final class PaletteCircleTest {
 			}
 			checks += 3;
 		}
-		System.out.println("PASS: " + checks + " palette section circle color, decoding and id checks");
+		try (final var stream = Files.newInputStream(directory.resolve("add-class.svg"))) {
+			final var image = new ImageLoader().load(stream)[0];
+			if (image.width != 24 || image.height != 18) throw new AssertionError("Class icon size differs from other tools");
+			int visible = 0;
+			int left = image.width;
+			int right = -1;
+			for (int y = 0; y < image.height; y++) {
+				for (int x = 0; x < image.width; x++) {
+					if (image.getAlpha(x, y) == 0) continue;
+					left = Math.min(left, x);
+					right = Math.max(right, x);
+					final var color = image.palette.getRGB(image.getPixel(x, y));
+					if (color.red != 153 || color.green != 153 || color.blue != 153) {
+						throw new AssertionError("Class palette icon is not the same neutral gray as other tools");
+					}
+					visible++;
+				}
+			}
+			if (visible == 0) throw new AssertionError("Class palette icon is blank");
+			if (left != 0 || right != 13) throw new AssertionError("Class palette icon is not left-aligned with other tools");
+			checks += 3;
+		}
+		System.out.println("PASS: " + checks + " palette section circle and class icon checks");
 	}
 
 	private static String hex(final int red, final int green, final int blue) {

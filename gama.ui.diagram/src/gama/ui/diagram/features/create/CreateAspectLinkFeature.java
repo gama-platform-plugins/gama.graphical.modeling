@@ -31,7 +31,7 @@ public class CreateAspectLinkFeature extends AbstractCreateSpeciesComponentLinkF
 	    
 	public CreateAspectLinkFeature(IFeatureProvider fp) {
 		// provide name and description for the UI, e.g. the palette
-		super(fp, "has the aspect", "Create aspect link");
+		super(fp, "Add aspect...", "Create aspect link");
 	}
 	
 	private EAspect createEAspect(ICreateConnectionContext context, ESpecies source) {

@@ -17,14 +17,12 @@ import java.util.Map;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.graphiti.dt.IDiagramTypeProvider;
 import org.eclipse.graphiti.features.ICreateConnectionFeature;
-import org.eclipse.graphiti.features.ICreateFeature;
 import org.eclipse.graphiti.features.IFeatureProvider;
 import org.eclipse.graphiti.features.context.IDoubleClickContext;
 import org.eclipse.graphiti.features.custom.ICustomFeature;
 import org.eclipse.graphiti.mm.pictograms.PictogramElement;
 import org.eclipse.graphiti.palette.IPaletteCompartmentEntry;
 import org.eclipse.graphiti.palette.impl.ConnectionCreationToolEntry;
-import org.eclipse.graphiti.palette.impl.ObjectCreationToolEntry;
 import org.eclipse.graphiti.palette.impl.PaletteCompartmentEntry;
 import org.eclipse.graphiti.tb.DefaultToolBehaviorProvider;
 
@@ -41,9 +39,10 @@ import gama.ui.diagram.features.create.CreateRuleLinkFeature;
 import gama.ui.diagram.features.create.CreateStateLinkFeature;
 import gama.ui.diagram.features.create.CreateSubGridLinkFeature;
 import gama.ui.diagram.features.create.CreateSubSpeciesLinkFeature;
-import gama.ui.diagram.features.create.CreateClassLinkFeature;
 import gama.ui.diagram.features.create.CreateClassInheritingLinkFeature;
 import gama.ui.diagram.features.create.CreateTaskLinkFeature;
+import gama.ui.diagram.features.create.CreateGuiExperimentLinkFeature;
+import gama.ui.diagram.features.create.CreateDisplayLinkFeature;
 import gama.ui.diagram.features.edit.EditActionFeature;
 import gama.ui.diagram.features.edit.EditAspectFeature;
 import gama.ui.diagram.features.edit.EditDisplayFeature;
@@ -134,8 +133,8 @@ public class MyGamaToolBehaviorProvider extends DefaultToolBehaviorProvider {
 		List<IPaletteCompartmentEntry> ret = new ArrayList<>();
 
 		// add new compartment at the end of the existing compartments
-		PaletteCompartmentEntry compartmentAgentEntry = new PaletteCompartmentEntry("Agents", GamaImageProvider.IMG_SECTION_NEUTRAL);
-		PaletteCompartmentEntry compartmentAgentFeatureEntry = new PaletteCompartmentEntry("Agent features", GamaImageProvider.IMG_SECTION_ORANGE);
+		PaletteCompartmentEntry compartmentAgentEntry = new PaletteCompartmentEntry("World", GamaImageProvider.IMG_SECTION_NEUTRAL);
+		PaletteCompartmentEntry compartmentAgentFeatureEntry = new PaletteCompartmentEntry("Species", GamaImageProvider.IMG_SECTION_ORANGE);
 		PaletteCompartmentEntry compartmentClasses = new PaletteCompartmentEntry("Classes", GamaImageProvider.IMG_SECTION_CLASS);
 		PaletteCompartmentEntry compartmentExperimentEntry = new PaletteCompartmentEntry("Experiments", GamaImageProvider.IMG_SECTION_BLUE);
 		PaletteCompartmentEntry compartmentBDI = new PaletteCompartmentEntry("BDI Architecture", GamaImageProvider.IMG_SECTION_GREEN);
@@ -161,10 +160,10 @@ public class MyGamaToolBehaviorProvider extends DefaultToolBehaviorProvider {
 				classAction.addCreateConnectionFeature(cf);
 				compartmentClasses.addToolEntry(classAction);
 			}
-			if (cf instanceof CreateClassLinkFeature || cf instanceof CreateClassInheritingLinkFeature) {
+			if (cf instanceof CreateClassInheritingLinkFeature) {
 				compartmentClasses.addToolEntry(connectionCreationToolEntry);
 			} else if (cf instanceof CreateSubSpeciesLinkFeature || cf instanceof CreateSubGridLinkFeature
-					|| cf instanceof CreateInheritingLinkFeature) {
+					|| cf instanceof CreateInheritingLinkFeature || cf instanceof CreateGuiExperimentLinkFeature) {
 				compartmentAgentEntry.addToolEntry(connectionCreationToolEntry);
 			} else if (cf instanceof CreateActionLinkFeature || cf instanceof CreateAspectLinkFeature
 					|| cf instanceof CreateReflexLinkFeature || cf instanceof CreateEquationLinkFeature) {
@@ -176,17 +175,10 @@ public class MyGamaToolBehaviorProvider extends DefaultToolBehaviorProvider {
 				compartmentFSM.addToolEntry(connectionCreationToolEntry);
 			} else if (cf instanceof CreateTaskLinkFeature) {
 				compartmentTask.addToolEntry(connectionCreationToolEntry);
-			} else {
+			} else if (cf instanceof CreateDisplayLinkFeature) {
 				compartmentExperimentEntry.addToolEntry(connectionCreationToolEntry);
 			}
 		}
-		ICreateFeature[] createFeatures = featureProvider.getCreateFeatures();
-		for (ICreateFeature cf : createFeatures) {
-			ObjectCreationToolEntry objectCreationToolEntry = new ObjectCreationToolEntry(cf.getCreateName(),
-					cf.getCreateDescription(), cf.getCreateImageId(), cf.getCreateLargeImageId(), cf);
-			compartmentExperimentEntry.addToolEntry(objectCreationToolEntry);
-		}
-
 		return ret.toArray(new IPaletteCompartmentEntry[ret.size()]);
 	}
 

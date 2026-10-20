@@ -30,7 +30,7 @@ public class CreateSubGridLinkFeature extends AbstractCreateSpeciesComponentLink
 	 
 	public CreateSubGridLinkFeature(IFeatureProvider fp) {
 		// provide name and description for the UI, e.g. the palette
-		super(fp, "is composed of a grid", "Create a new grid");
+		super(fp, "Add grid...", "Create a new grid");
 	}
 
 	private ESpecies createEGrid(ICreateConnectionContext context, ESpecies source) {

@@ -811,6 +811,12 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 	public boolean isWasOK() { return wasOK; }
 
 	@Override
+	protected org.eclipse.gef.ui.palette.FlyoutPaletteComposite createPaletteComposite(final Composite parent) {
+		return new GamaPaletteComposite(parent, getSite().getPage(), getPaletteViewerProvider(),
+				getPalettePreferences());
+	}
+
+	@Override
 	protected DiagramBehavior createDiagramBehavior() {
 		return new GamaDiagramBehavior(this);
 	}
