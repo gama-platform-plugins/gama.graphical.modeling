@@ -121,6 +121,7 @@ public final class DescriptionDiagramImporter {
 	}
 
 	private void populateSpecies(final ITypeDescription description, final ESpecies target) {
+		DiagramSourceReference.attach(target, description);
 		copyFacets(description, target, Set.of("name", "parent", "skills", "type"));
 		if (target instanceof EExperiment experiment && description.hasFacet("type")) {
 			ExperimentKind.set(experiment, facet(description, "type"));
@@ -330,6 +331,7 @@ public final class DescriptionDiagramImporter {
 			default -> { return; }
 		}
 		target.setName(target instanceof EReflex ? lifecycleName(description) : description.getName());
+		DiagramSourceReference.attach(target, description);
 		copyFacets(description, target, Set.of("name", "type"));
 		if (target instanceof EAction) copyVirtualFacet(description, target);
 		model.getObjects().add(target);
@@ -347,6 +349,7 @@ public final class DescriptionDiagramImporter {
 			if (!isDeclaredHere(child, output)) continue;
 			if ("display".equals(child.getKeyword())) {
 				final EDisplay display = factory.createEDisplay();
+				DiagramSourceReference.attach(display, child);
 				display.setName(label(child, child.getName()));
 				display.setDefineGamlCode(true);
 				display.setGamlCode(body(child));

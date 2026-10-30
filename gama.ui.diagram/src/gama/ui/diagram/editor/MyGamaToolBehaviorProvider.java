@@ -90,6 +90,7 @@ public class MyGamaToolBehaviorProvider extends DefaultToolBehaviorProvider {
 
 	@Override
 	public ICustomFeature getDoubleClickFeature(final IDoubleClickContext context) {
+		if (((GamaFeatureProvider) getFeatureProvider()).isLive()) return null;
 		ICustomFeature customFeature = null;
 		PictogramElement[] pes = context.getPictogramElements();
 		if (pes != null && pes.length == 1) {
@@ -130,6 +131,7 @@ public class MyGamaToolBehaviorProvider extends DefaultToolBehaviorProvider {
 
 	@Override
 	public IPaletteCompartmentEntry[] getPalette() {
+		if (((GamaFeatureProvider) getFeatureProvider()).isLive()) return new IPaletteCompartmentEntry[0];
 		List<IPaletteCompartmentEntry> ret = new ArrayList<>();
 
 		// add new compartment at the end of the existing compartments

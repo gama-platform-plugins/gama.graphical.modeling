@@ -14,6 +14,7 @@ import org.eclipse.ui.actions.ActionFactory;
 
 import gama.ui.diagram.features.layout.LayoutDiagramFeature;
 import gama.ui.diagram.features.modelgeneration.ModelGenerationFeature;
+import gama.ui.diagram.features.modelgeneration.SaveDiagramSnapshotFeature;
 
 /** A closed menu: unrelated workbench contributions must not extend it. */
 final class GamaDiagramContextMenuProvider extends ContextMenuProvider {
@@ -31,7 +32,9 @@ final class GamaDiagramContextMenuProvider extends ContextMenuProvider {
 	@Override
 	public void buildContextMenu(final IMenuManager menu) {
 		menu.add(registry.getAction(ActionFactory.UNDO.getId()));
-		menu.add(registry.getAction(ActionFactory.DELETE.getId()));
+		final boolean live = configuration.getDiagramBehavior().getDiagramContainer() instanceof GamaDiagramEditor editor
+				&& editor.isLive();
+		if (!live) menu.add(registry.getAction(ActionFactory.DELETE.getId()));
 		menu.add(new Separator());
 		menu.add(registry.getAction(UpdateAction.ACTION_ID));
 
@@ -43,9 +46,13 @@ final class GamaDiagramContextMenuProvider extends ContextMenuProvider {
 		menu.add(layout);
 
 		menu.add(new Separator());
-		final var exportGaml = new CustomAction(new ModelGenerationFeature(features), context, behavior);
-		exportGaml.setText("Export as GAML");
-		menu.add(exportGaml);
+		if (live) {
+			menu.add(new CustomAction(new SaveDiagramSnapshotFeature(features), context, behavior));
+		} else {
+			final var exportGaml = new CustomAction(new ModelGenerationFeature(features), context, behavior);
+			exportGaml.setText("Export as GAML");
+			menu.add(exportGaml);
+		}
 		final var exportImage = registry.getAction(SaveImageAction.ACTION_ID);
 		if (exportImage != null) {
 			exportImage.setText("Export...");

@@ -42,6 +42,8 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.ToolItem;
 import gama.api.kernel.species.IModelSpecies;
 import org.eclipse.xtext.resource.SynchronizedXtextResourceSet;
 import org.eclipse.xtext.resource.XtextResourceSet;
@@ -54,6 +56,10 @@ import gama.ui.diagram.features.add.ColorDisplay;
 import gama.ui.diagram.features.add.RelationStyle;
 import gama.ui.diagram.features.layout.LayoutCommonFeature;
 import gama.ui.diagram.features.modelgeneration.ModelGenerator;
+import gama.ui.diagram.features.modelgeneration.DiagramModelDocumentation;
+import gama.ui.diagram.features.modelgeneration.SaveDiagramSnapshotFeature;
+import gama.ui.diagram.metamodel.EGamaModel;
+import gaml.compiler.ui.wizards.species.ModelDocumentation;
 import gama.ui.diagram.swt.image.GamaImageProvider;
 import gama.ui.diagram.metamodel.EAction;
 import gama.ui.diagram.metamodel.EAspect;
@@ -101,6 +107,20 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 	private boolean wasOK = true;
 	private ExperimentToolbar experimentToolbar;
 	private GamaToolbar2 toolbar;
+	private Label liveStatus;
+	private LiveDiagramSession liveSession;
+
+	public boolean isLive() { return getEditorInput() instanceof LiveDiagramInput; }
+
+	@Override
+	public void refreshTitle() {
+		if (getEditorInput() instanceof LiveDiagramInput input) {
+			setPartName(input.getName());
+			setTitleToolTip(input.getToolTipText());
+		} else {
+			super.refreshTitle();
+		}
+	}
 
 	/** The diagram. */
 	Diagram diagram;
@@ -286,8 +306,24 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 		toolbar = new GamaToolbar2(parent, SWT.NONE);
 		toolbar.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 		experimentToolbar = new ExperimentToolbar(toolbar, this::launchExperiment,
-				() -> ModelGenerator.modelValidation(getDiagramTypeProvider().getFeatureProvider(), getDiagram()),
+				() -> {
+					if (isLive()) {
+						if (liveSession != null) liveSession.refresh();
+					} else {
+						ModelGenerator.modelValidation(getDiagramTypeProvider().getFeatureProvider(), getDiagram());
+					}
+				},
 				uri -> GAMA.getGui().getModelsManager().editModel(uri));
+
+		if (isLive()) {
+			final var snapshot = new ToolItem(toolbar.getToolbar(SWT.RIGHT), SWT.PUSH);
+			snapshot.setText("Save snapshot...");
+			snapshot.setToolTipText("Save an independent .gadl diagram without disconnecting this live view");
+			snapshot.addListener(SWT.Selection, event -> SaveDiagramSnapshotFeature.save(this));
+			liveStatus = new Label(parent, SWT.WRAP);
+			liveStatus.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+			liveStatus.setText("Waiting for a valid GAML model...");
+		}
 
 		// Asking the editor to fill the rest
 		final Composite parent2 = new Composite(parent, SWT.NONE);
@@ -299,6 +335,10 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 	}
 
 	private void launchExperiment(final String name) {
+		if (isLive()) {
+			if (liveSession != null) liveSession.launch(name);
+			return;
+		}
 		final Diagram currentDiagram = getDiagram();
 		final List<GamlCompilationError> validationErrors =
 				ModelGenerator.modelValidation(getDiagramTypeProvider().getFeatureProvider(), currentDiagram);
@@ -319,7 +359,61 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 
 	@Override
 	public void doSave(final IProgressMonitor monitor) {
-		super.doSave(monitor);
+		if (isLive()) {
+			if (liveSession != null) liveSession.saveSource(monitor);
+		} else {
+			super.doSave(monitor);
+		}
+	}
+
+	@Override
+	public boolean isSaveAsAllowed() { return isLive() || super.isSaveAsAllowed(); }
+
+	@Override
+	public boolean isSaveOnCloseNeeded() { return !isLive() && super.isSaveOnCloseNeeded(); }
+
+	@Override
+	public void doSaveAs() {
+		if (isLive()) {
+			SaveDiagramSnapshotFeature.save(this);
+		} else {
+			super.doSaveAs();
+		}
+	}
+
+	void showLiveStatus(final String message, final GamlEditorState state) {
+		if (liveStatus == null || liveStatus.isDisposed()) return;
+		liveStatus.setText(message);
+		liveStatus.getParent().layout(true, true);
+		experimentToolbar.update(state == null ? new GamlEditorState(null, List.of()) : state);
+		refreshTitle();
+	}
+
+	void applyLiveModel(final EGamaModel model, final ModelDocumentation documentation) {
+		final var domain = getEditingDomain();
+		getDiagramBehavior().disableAdapters();
+		try {
+			domain.getCommandStack().execute(new RecordingCommand(domain, "Refresh from GAML") {
+				@Override
+				protected void doExecute() {
+					getDiagram().setName(model.getName());
+					DiagramModelDocumentation.write(getDiagram(), documentation);
+					((GamaFeatureProvider) getDiagramTypeProvider().getFeatureProvider()).replaceImportedModel(model);
+				}
+			});
+			// Old presentation commands refer to the replaced projection.
+			domain.getCommandStack().flush();
+		} finally {
+			getDiagramBehavior().enableAdapters();
+		}
+		getDiagramBehavior().getRefreshBehavior().initRefresh();
+		getDiagramBehavior().refresh();
+	}
+
+	@Override
+	public void dispose() {
+		if (liveSession != null) liveSession.close();
+		super.dispose();
 	}
 
 	/**
@@ -353,6 +447,10 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 		((GamaDiagramBehavior) getDiagramBehavior()).updateConnectionLayers();
 		updateAppearanceIfNeeded();
 
+		if (getEditorInput() instanceof LiveDiagramInput input) {
+			liveSession = new LiveDiagramSession(this, input.getSource());
+			return;
+		}
 		initGamlResource();
 		if (getDiagram() != null) {
 			ModelGenerator.modelValidation(getDiagramTypeProvider().getFeatureProvider(), getDiagram());

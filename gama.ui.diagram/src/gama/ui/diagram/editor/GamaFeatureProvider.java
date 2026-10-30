@@ -34,6 +34,9 @@ import org.eclipse.graphiti.features.context.impl.AddContext;
 import org.eclipse.graphiti.features.context.impl.CreateConnectionContext;
 import org.eclipse.graphiti.features.context.impl.CreateContext;
 import org.eclipse.graphiti.features.custom.ICustomFeature;
+import org.eclipse.graphiti.ui.features.DefaultDeleteFeature;
+import org.eclipse.graphiti.features.IReconnectionFeature;
+import org.eclipse.graphiti.features.context.IReconnectionContext;
 import org.eclipse.graphiti.mm.pictograms.AnchorContainer;
 import org.eclipse.graphiti.mm.pictograms.ContainerShape;
 import org.eclipse.graphiti.mm.pictograms.Diagram;
@@ -93,6 +96,7 @@ import gama.ui.diagram.features.layout.LayoutEExperimentFeature;
 import gama.ui.diagram.features.layout.LayoutESpeciesFeature;
 import gama.ui.diagram.features.modelgeneration.ModelGenerationFeature;
 import gama.ui.diagram.features.modelgeneration.ModelGenerator;
+import gama.ui.diagram.features.modelgeneration.SaveDiagramSnapshotFeature;
 import gama.ui.diagram.features.others.ChangeColorEGamaObjectFeature;
 import gama.ui.diagram.features.others.CustomDeleteFeature;
 import gama.ui.diagram.features.others.EmptyRemoveFeature;
@@ -140,6 +144,11 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 
 	public GamaFeatureProvider(final IDiagramTypeProvider dtp) {
 		super(dtp);
+	}
+
+	public boolean isLive() {
+		return getDiagramTypeProvider().getDiagramBehavior().getDiagramContainer() instanceof GamaDiagramEditor editor
+				&& editor.isLive();
 	}
 
 	@Override
@@ -206,10 +215,31 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 						initSimple(world, diagram);
 					}
 				}
-				ModelGenerator.modelValidation(GamaFeatureProvider.this, diagram);
-				editor.updateEObjectErrors();
+				if (!isLive()) {
+					ModelGenerator.modelValidation(GamaFeatureProvider.this, diagram);
+					editor.updateEObjectErrors();
+				}
 			}
 		});
+	}
+
+	void replaceImportedModel(final EGamaModel model) {
+		final Diagram diagram = getDiagramTypeProvider().getDiagram();
+		final var editor = (GamaDiagramEditor) getDiagramTypeProvider().getDiagramBehavior().getDiagramContainer();
+		final var behavior = editor.getDiagramBehavior();
+		final var layout = new LiveDiagramLayout(diagram, behavior.getSelectedPictogramElements());
+		layout.restoreColors(model);
+		diagram.getConnections().clear();
+		diagram.getChildren().clear();
+		diagram.getPictogramLinks().clear();
+		diagram.eResource().getContents().removeIf(root -> root != diagram);
+		editor.getIdsEObjects().clear();
+		editor.getErrorsLoc().clear();
+		editor.getSyntaxErrorsLoc().clear();
+		importedModel = model;
+		addImportedModel(diagram, editor);
+		LayoutDiagramFeature.execute(diagram);
+		((GamaDiagramBehavior) behavior).bufferSelection(layout.restore(diagram));
 	}
 
 	private void addImportedModel(final Diagram diagram, final GamaDiagramEditor editor) {
@@ -282,6 +312,7 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 
 	@Override
 	public ICreateConnectionFeature[] getCreateConnectionFeatures() {
+		if (isLive()) return new ICreateConnectionFeature[0];
 		return new ICreateConnectionFeature[] { new CreateSubSpeciesLinkFeature(this),
 				new CreateSubGridLinkFeature(this),
 				new CreateClassLinkFeature(this), new CreateClassInheritingLinkFeature(this),
@@ -296,6 +327,8 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 
 	@Override
 	public ICustomFeature[] getCustomFeatures(final ICustomContext context) {
+		if (isLive()) return new ICustomFeature[] { new SaveDiagramSnapshotFeature(this),
+				new LayoutDiagramFeature(this), new ChangeColorEGamaObjectFeature(this) };
 		return new ICustomFeature[] { new ModelGenerationFeature(this), new LayoutDiagramFeature(this),
 				new ChangeColorEGamaObjectFeature(this) };
 	}
@@ -307,7 +340,16 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 
 	@Override
 	public IDeleteFeature getDeleteFeature(final IDeleteContext context) {
+		if (isLive()) return new DefaultDeleteFeature(this) {
+			@Override
+			public boolean canDelete(final IDeleteContext deleteContext) { return false; }
+		};
 		return new CustomDeleteFeature(this);
+	}
+
+	@Override
+	public IReconnectionFeature getReconnectionFeature(final IReconnectionContext context) {
+		return isLive() ? null : super.getReconnectionFeature(context);
 	}
 
 	@Override
