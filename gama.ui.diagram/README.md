@@ -27,6 +27,11 @@ is not restored as a standalone diagram after a workbench restart.
 
 ## Independent snapshots
 
+Choose **Edit snapshot...** in the live palette's **Editing** section to save
+an independent `.gadl` copy and immediately open it with the full GAMA editing
+palette. A confirmation explains that edits to this copy do not update the
+GAML source. Cancelling either dialog leaves the live view unchanged.
+
 Use **Save snapshot...** in the live toolbar or context menu, or **Save As**,
 to choose a workspace `.gadl` file. The snapshot contains a detached copy of
 the last successfully displayed model and its current presentation, even if

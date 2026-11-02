@@ -23,7 +23,9 @@ import org.eclipse.graphiti.features.custom.AbstractCustomFeature;
 import org.eclipse.jface.dialogs.ErrorDialog;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.window.Window;
+import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.dialogs.SaveAsDialog;
+import org.eclipse.ui.ide.IDE;
 
 import gama.ui.diagram.editor.GamaDiagramEditor;
 import gama.ui.diagram.editor.LiveDiagramInput;
@@ -51,6 +53,19 @@ public final class SaveDiagramSnapshotFeature extends AbstractCustomFeature {
 	}
 
 	public static void save(final GamaDiagramEditor editor) {
+		save(editor, false);
+	}
+
+	public static void edit(final GamaDiagramEditor editor) {
+		if (MessageDialog.openConfirm(editor.getSite().getShell(), "Edit independent diagram",
+				"This live diagram follows the GAML source and cannot be edited directly.\n\n"
+				+ "Save an independent .gadl copy and open it for editing? "
+				+ "Changes to that copy will not update the GAML source. The live view will remain synchronized.")) {
+			save(editor, true);
+		}
+	}
+
+	private static void save(final GamaDiagramEditor editor, final boolean openForEditing) {
 		if (editor.getDiagram().getChildren().isEmpty()) {
 			MessageDialog.openInformation(editor.getSite().getShell(), "No diagram snapshot",
 					"Wait for a valid GAML model before saving a diagram snapshot.");
@@ -89,6 +104,17 @@ public final class SaveDiagramSnapshotFeature extends AbstractCustomFeature {
 			final var status = new Status(IStatus.ERROR, "gama.ui.diagram", "Cannot save the diagram snapshot.", e);
 			Platform.getLog(SaveDiagramSnapshotFeature.class).log(status);
 			ErrorDialog.openError(editor.getSite().getShell(), "Cannot save snapshot", null, status);
+			return;
+		}
+		if (openForEditing) {
+			try {
+				IDE.openEditor(editor.getSite().getPage(), file, "gama.ui.diagram.editor", true);
+			} catch (final PartInitException e) {
+				final var status = new Status(IStatus.ERROR, "gama.ui.diagram",
+						"The snapshot was saved, but could not be opened for editing: " + file.getFullPath(), e);
+				Platform.getLog(SaveDiagramSnapshotFeature.class).log(status);
+				ErrorDialog.openError(editor.getSite().getShell(), "Cannot open snapshot", null, status);
+			}
 		}
 	}
 }
