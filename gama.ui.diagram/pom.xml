@@ -9,4 +9,7 @@
     <version>2026.6.0-SNAPSHOT</version>
     <relativePath>../gama.plugin.parent/</relativePath>
   </parent>
+  <properties>
+    <gama.category>gama.category.interface</gama.category>
+  </properties>
 </project>
