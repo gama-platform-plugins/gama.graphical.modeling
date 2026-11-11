@@ -44,3 +44,7 @@ editor; subsequent changes on either side do not affect the other.
 
 Existing `.gadl` files and the **Model diagram** creation wizard retain their
 standalone editing and GAML export behavior.
+
+**Layout** arranges the whole diagram top-down using GAMA's Jungrapht
+Sugiyama layout, after fitting boxes to their contents. It requires a GAMA
+installation whose `gama.dependencies` bundle exports Jungrapht.

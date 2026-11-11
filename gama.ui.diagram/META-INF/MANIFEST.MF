@@ -27,6 +27,8 @@ Export-Package: gama.ui.diagram.editor,
  gama.ui.diagram.swt.editFrame,
  gama.ui.diagram.swt.image,
  gama.ui.diagram.swt.wizards
-Import-Package: com.google.inject
+Import-Package: com.google.inject,
+ org.jungrapht.visualization.layout.algorithms,
+ org.jungrapht.visualization.layout.model
 Bundle-ActivationPolicy: lazy
 Bundle-Activator: DiagramActivator
