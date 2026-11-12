@@ -14,7 +14,6 @@ import org.eclipse.ui.actions.ActionFactory;
 
 import gama.ui.diagram.features.layout.LayoutDiagramFeature;
 import gama.ui.diagram.features.modelgeneration.ModelGenerationFeature;
-import gama.ui.diagram.features.modelgeneration.SaveDiagramSnapshotFeature;
 
 /** A closed menu: unrelated workbench contributions must not extend it. */
 final class GamaDiagramContextMenuProvider extends ContextMenuProvider {
@@ -46,9 +45,7 @@ final class GamaDiagramContextMenuProvider extends ContextMenuProvider {
 		menu.add(layout);
 
 		menu.add(new Separator());
-		if (live) {
-			menu.add(new CustomAction(new SaveDiagramSnapshotFeature(features), context, behavior));
-		} else {
+		if (!live) {
 			final var exportGaml = new CustomAction(new ModelGenerationFeature(features), context, behavior);
 			exportGaml.setText("Export as GAML");
 			menu.add(exportGaml);

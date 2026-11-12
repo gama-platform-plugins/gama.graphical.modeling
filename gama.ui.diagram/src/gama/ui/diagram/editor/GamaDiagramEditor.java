@@ -21,6 +21,13 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.transaction.RecordingCommand;
 import org.eclipse.emf.transaction.TransactionalEditingDomain;
 import org.eclipse.emf.transaction.util.TransactionUtil;
+import org.eclipse.core.runtime.Platform;
+import org.eclipse.draw2d.Figure;
+import org.eclipse.draw2d.geometry.Point;
+import org.eclipse.draw2d.geometry.Rectangle;
+import org.eclipse.gef.LayerConstants;
+import org.eclipse.gef.editparts.LayerManager;
+import org.eclipse.gef.editparts.ZoomManager;
 import org.eclipse.graphiti.internal.util.T;
 import org.eclipse.graphiti.mm.algorithms.GraphicsAlgorithm;
 import org.eclipse.graphiti.mm.algorithms.AbstractText;
@@ -37,6 +44,9 @@ import org.eclipse.graphiti.ui.editor.DiagramEditor;
 import org.eclipse.graphiti.util.IColorConstant;
 import org.eclipse.swt.SWT;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.jface.resource.JFaceResources;
+import org.eclipse.jface.resource.LocalResourceManager;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -109,6 +119,10 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 	private GamaToolbar2 toolbar;
 	private Label liveStatus;
 	private LiveDiagramSession liveSession;
+	private boolean fitToView = true;
+	private boolean fitting;
+	private boolean fitPending;
+	private Figure panExtent;
 
 	public boolean isLive() { return getEditorInput() instanceof LiveDiagramInput; }
 
@@ -315,11 +329,23 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 				},
 				uri -> GAMA.getGui().getModelsManager().editModel(uri));
 
+		toolbar.sep(SWT.RIGHT);
+		final ToolItem zoomIn = toolbar.button("toolbar/font.increase", "", "Zoom in", event -> zoom(1.2), SWT.RIGHT);
+		final ToolItem fit = toolbar.button("toolbar/font.reset", "", "Fit diagram",
+				event -> {
+					fitToView = true;
+					scheduleFit();
+				}, SWT.RIGHT);
+		final ToolItem zoomOut = toolbar.button("toolbar/font.decrease", "", "Zoom out",
+				event -> zoom(1 / 1.2), SWT.RIGHT);
+
 		if (isLive()) {
-			final var snapshot = new ToolItem(toolbar.getToolbar(SWT.RIGHT), SWT.PUSH);
-			snapshot.setText("Save snapshot...");
-			snapshot.setToolTipText("Save an independent .gadl diagram without disconnecting this live view");
-			snapshot.addListener(SWT.Selection, event -> SaveDiagramSnapshotFeature.save(this));
+			final ToolItem edit = toolbar.button(null, "", "Edit an independent diagram snapshot",
+					event -> SaveDiagramSnapshotFeature.edit(this), SWT.RIGHT);
+			final var images = new LocalResourceManager(JFaceResources.getResources(), toolbar);
+			edit.setImage(images.createImage(ImageDescriptor.createFromURL(
+					Platform.getBundle("gama.ui.diagram").getEntry("icons/edit-snapshot.svg"))));
+			toolbar.requestLayout();
 			liveStatus = new Label(parent, SWT.WRAP);
 			liveStatus.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 			liveStatus.setText("Waiting for a valid GAML model...");
@@ -331,8 +357,73 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 		parent2.setLayout(new FillLayout());
 
 		super.createPartControl(parent2);
-
+		final boolean zoomAvailable = getGraphicalViewer() != null && zoomManager() != null;
+		zoomIn.setEnabled(zoomAvailable);
+		fit.setEnabled(zoomAvailable);
+		zoomOut.setEnabled(zoomAvailable);
+		if (zoomAvailable) {
+			final var viewer = getGraphicalViewer();
+			panExtent = new Figure() {
+				@Override
+				public boolean containsPoint(final int x, final int y) { return false; }
+			};
+			((LayerManager) viewer.getRootEditPart()).getLayer(LayerConstants.HANDLE_LAYER).add(panExtent);
+			zoomManager().addZoomListener(value -> {
+				if (!fitting) fitToView = false;
+			});
+			viewer.getControl().addListener(SWT.Resize, event -> scheduleFit());
+			scheduleFit();
+		}
 	}
+
+	private ZoomManager zoomManager() {
+		return (ZoomManager) getAdapter(ZoomManager.class);
+	}
+
+	private void zoom(final double factor) {
+		fitToView = false;
+		final ZoomManager manager = zoomManager();
+		manager.setZoom(manager.getZoom() * factor);
+	}
+
+	private void scheduleFit() {
+		if (!fitToView || fitPending || getGraphicalViewer() == null) return;
+		final var control = getGraphicalViewer().getControl();
+		if (control == null || control.isDisposed()) return;
+		fitPending = true;
+		control.getDisplay().asyncExec(() -> {
+			org.eclipse.swt.graphics.Point initialSize = null;
+			try {
+				if (!fitToView || control.isDisposed() || control.getSize().x <= 0
+						|| control.getSize().y <= 0 || getDiagram().getChildren().isEmpty()) return;
+				initialSize = control.getSize();
+				fitting = true;
+				panExtent.setBounds(new Rectangle());
+				getGraphicalViewer().flush();
+				zoomManager().setZoomAsText(ZoomManager.FIT_ALL);
+			} finally {
+				fitting = false;
+				fitPending = false;
+				if (initialSize != null && !control.isDisposed() && !initialSize.equals(control.getSize())) {
+					scheduleFit();
+				}
+			}
+		});
+	}
+
+	void panCanvas(final int x, final int y) {
+		fitToView = false;
+		final var viewport = zoomManager().getViewport();
+		final var area = viewport.getClientArea();
+		final var bounds = panExtent.getBounds().getCopy();
+		bounds.union(x, y, area.width, area.height);
+		panExtent.setBounds(bounds);
+		getGraphicalViewer().flush();
+		viewport.validate();
+		viewport.setViewLocation(x, y);
+	}
+
+	Point viewLocation() { return zoomManager().getViewport().getViewLocation(); }
 
 	private void launchExperiment(final String name) {
 		if (isLive()) {
@@ -408,6 +499,7 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 		}
 		getDiagramBehavior().getRefreshBehavior().initRefresh();
 		getDiagramBehavior().refresh();
+		scheduleFit();
 	}
 
 	@Override
@@ -448,6 +540,8 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 		updateAppearanceIfNeeded();
 
 		if (getEditorInput() instanceof LiveDiagramInput input) {
+			getEditDomain().setDefaultTool(getPaletteRoot().getDefaultEntry().createTool());
+			getEditDomain().loadDefaultTool();
 			liveSession = new LiveDiagramSession(this, input.getSource());
 			return;
 		}

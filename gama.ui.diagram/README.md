@@ -12,8 +12,14 @@ semantic creation, editing, deletion and reconnection are disabled in this mode.
 Selection, movement, resizing, colors and layout remain presentation operations.
 Box positions, sizes, colors and connection bends are retained for declarations
 that still have the same source file, kind, name and enclosing declarations.
-Renamed or moved declarations may be laid out as new nodes. Zoom is unchanged.
+Renamed or moved declarations may be laid out as new nodes.
 Presentation undo history is cleared when a new source projection is applied.
+
+The live view uses the single-selection tool without a palette. The toolbar
+provides zoom in, fit and zoom out controls in both live and editable diagrams.
+Diagrams initially fit the view and continue to fit when it is resized. Manual
+zooming or dragging the background leaves fit mode; use **Fit** to restore it.
+Dragging empty space pans the canvas without marquee selection.
 
 While the source is invalid, the last valid diagram remains visible with an
 explicit status message. Experiment controls are unavailable until the view is
@@ -27,13 +33,12 @@ is not restored as a standalone diagram after a workbench restart.
 
 ## Independent snapshots
 
-Choose **Edit snapshot...** in the live palette's **Editing** section to save
+Choose the **Edit** icon in the live toolbar to save
 an independent `.gadl` copy and immediately open it with the full GAMA editing
 palette. A confirmation explains that edits to this copy do not update the
 GAML source. Cancelling either dialog leaves the live view unchanged.
 
-Use **Save snapshot...** in the live toolbar or context menu, or **Save As**,
-to choose a workspace `.gadl` file. The snapshot contains a detached copy of
+Use **Save As** to choose a workspace `.gadl` file. The snapshot contains a detached copy of
 the last successfully displayed model and its current presentation, even if
 the source currently has errors.
 

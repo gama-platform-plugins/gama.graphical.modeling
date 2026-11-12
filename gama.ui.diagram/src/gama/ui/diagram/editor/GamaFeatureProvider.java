@@ -96,7 +96,6 @@ import gama.ui.diagram.features.layout.LayoutEExperimentFeature;
 import gama.ui.diagram.features.layout.LayoutESpeciesFeature;
 import gama.ui.diagram.features.modelgeneration.ModelGenerationFeature;
 import gama.ui.diagram.features.modelgeneration.ModelGenerator;
-import gama.ui.diagram.features.modelgeneration.SaveDiagramSnapshotFeature;
 import gama.ui.diagram.features.others.ChangeColorEGamaObjectFeature;
 import gama.ui.diagram.features.others.CustomDeleteFeature;
 import gama.ui.diagram.features.others.EmptyRemoveFeature;
@@ -327,7 +326,7 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 
 	@Override
 	public ICustomFeature[] getCustomFeatures(final ICustomContext context) {
-		if (isLive()) return new ICustomFeature[] { new SaveDiagramSnapshotFeature(this),
+		if (isLive()) return new ICustomFeature[] {
 				new LayoutDiagramFeature(this), new ChangeColorEGamaObjectFeature(this) };
 		return new ICustomFeature[] { new ModelGenerationFeature(this), new LayoutDiagramFeature(this),
 				new ChangeColorEGamaObjectFeature(this) };

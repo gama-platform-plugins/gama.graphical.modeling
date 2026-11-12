@@ -130,6 +130,16 @@ public class MyGamaToolBehaviorProvider extends DefaultToolBehaviorProvider {
 	}
 
 	@Override
+	public boolean isShowFlyoutPalette() {
+		return !((GamaFeatureProvider) getFeatureProvider()).isLive();
+	}
+
+	@Override
+	public boolean isShowMarqueeTool() {
+		return !((GamaFeatureProvider) getFeatureProvider()).isLive();
+	}
+
+	@Override
 	public IPaletteCompartmentEntry[] getPalette() {
 		if (((GamaFeatureProvider) getFeatureProvider()).isLive()) return new IPaletteCompartmentEntry[0];
 		List<IPaletteCompartmentEntry> ret = new ArrayList<>();
