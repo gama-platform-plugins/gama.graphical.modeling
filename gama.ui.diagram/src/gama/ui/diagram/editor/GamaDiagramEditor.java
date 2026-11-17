@@ -122,6 +122,7 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 	private boolean fitToView = true;
 	private boolean fitting;
 	private boolean fitPending;
+	private double gestureMagnification = 1;
 	private Figure panExtent;
 
 	public boolean isLive() { return getEditorInput() instanceof LiveDiagramInput; }
@@ -372,6 +373,18 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 				if (!fitting) fitToView = false;
 			});
 			viewer.getControl().addListener(SWT.Resize, event -> scheduleFit());
+			viewer.getControl().addListener(SWT.Gesture, event -> {
+				if (event.detail == SWT.GESTURE_BEGIN || event.detail == SWT.GESTURE_END) {
+					gestureMagnification = 1;
+				} else if (event.detail == SWT.GESTURE_MAGNIFY
+						&& Double.isFinite(event.magnification) && event.magnification > 0) {
+					if (event.magnification != gestureMagnification) {
+						zoom(event.magnification / gestureMagnification);
+						gestureMagnification = event.magnification;
+					}
+					event.doit = false;
+				}
+			});
 			scheduleFit();
 		}
 	}
