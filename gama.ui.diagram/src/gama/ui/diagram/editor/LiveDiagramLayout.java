@@ -16,6 +16,7 @@ import org.eclipse.graphiti.mm.pictograms.Shape;
 import org.eclipse.graphiti.services.Graphiti;
 
 import gama.ui.diagram.features.layout.LayoutCommonFeature;
+import gama.ui.diagram.features.layout.LayoutDiagramFeature;
 import gama.ui.diagram.features.modelgeneration.DiagramSourceReference;
 import gama.ui.diagram.metamodel.EGamaLink;
 import gama.ui.diagram.metamodel.EGamaModel;
@@ -93,7 +94,13 @@ final class LiveDiagramLayout {
 			final var businessObject = Graphiti.getLinkService().getBusinessObjectForLinkedPictogramElement(connection);
 			if (connection instanceof FreeFormConnection free && businessObject instanceof EGamaLink link) {
 				final var points = bends.get(edge(link));
-				if (points != null) free.getBendpoints().addAll(points);
+				if (points != null) {
+					free.getBendpoints().clear();
+					free.getBendpoints().addAll(points);
+				} else if (boxes.containsKey(DiagramSourceReference.key(link.getSource()))
+						|| boxes.containsKey(DiagramSourceReference.key(link.getTarget()))) {
+					LayoutDiagramFeature.routeConnection(free);
+				}
 			}
 		}
 		return selected.toArray(PictogramElement[]::new);

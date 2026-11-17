@@ -7,9 +7,11 @@ import org.eclipse.gef.editparts.LayerManager;
 import org.eclipse.graphiti.mm.algorithms.AbstractText;
 import org.eclipse.graphiti.mm.algorithms.GraphicsAlgorithm;
 import org.eclipse.graphiti.mm.algorithms.MultiText;
+import org.eclipse.graphiti.mm.algorithms.Polygon;
 import org.eclipse.graphiti.mm.algorithms.Polyline;
 import org.eclipse.graphiti.mm.algorithms.Rectangle;
 import org.eclipse.graphiti.mm.algorithms.styles.Color;
+import org.eclipse.graphiti.mm.algorithms.styles.LineStyle;
 import org.eclipse.graphiti.mm.algorithms.styles.Orientation;
 import org.eclipse.graphiti.mm.pictograms.Connection;
 import org.eclipse.graphiti.mm.pictograms.ConnectionDecorator;
@@ -21,6 +23,7 @@ import org.eclipse.graphiti.util.IColorConstant;
 
 import gama.ui.diagram.metamodel.EGamaLink;
 import gama.ui.diagram.metamodel.EClassSpecies;
+import gama.ui.diagram.metamodel.EInheritLink;
 import gama.ui.diagram.metamodel.EReflexLink;
 import gama.ui.diagram.metamodel.ESubSpeciesLink;
 import gama.ui.diagram.metamodel.GamaPackage;
@@ -70,6 +73,11 @@ public final class RelationStyle {
 		final IColorConstant color = color(connection);
 		styleLine(diagram, connection.getGraphicsAlgorithm(), color);
 		final var ga = Graphiti.getGaService();
+		if (connection.getConnectionDecorators().stream()
+				.noneMatch(decorator -> decorator.getGraphicsAlgorithm() instanceof Polyline)) {
+			ga.createPolygon(Graphiti.getPeCreateService().createConnectionDecorator(connection, false,
+					arrowLocation(connection), true), new int[] { -10, 4, 0, 0, -10, -4 });
+		}
 		for (final ConnectionDecorator decorator : connection.getConnectionDecorators()) {
 			GraphicsAlgorithm graphics = decorator.getGraphicsAlgorithm();
 			final AbstractText text = label(graphics);
@@ -100,6 +108,21 @@ public final class RelationStyle {
 				final int height = size.getHeight() + 6;
 				ga.setLocationAndSize(graphics, -width / 2, -height / 2, width, height);
 			} else {
+				if (graphics instanceof Polyline) {
+					final Polygon arrow;
+					if (isArrow(graphics)) {
+						arrow = (Polygon) graphics;
+					} else {
+						arrow = ga.createPolygon(decorator, new int[] { -10, 4, 0, 0, -10, -4 });
+					}
+					graphics = arrow;
+					decorator.setActive(false);
+					decorator.setLocationRelative(true);
+					decorator.setLocation(arrowLocation(connection));
+					arrow.setFilled(true);
+					arrow.setBackground(ga.manageColor(diagram, color));
+					arrow.setLineStyle(LineStyle.SOLID);
+				}
 				styleLine(diagram, graphics, color);
 			}
 		}
@@ -108,6 +131,7 @@ public final class RelationStyle {
 	public static boolean isCurrent(final Connection connection) {
 		final IColorConstant color = color(connection);
 		if (!isCurrentLine(connection.getGraphicsAlgorithm(), color)) return false;
+		int arrows = 0;
 		for (final ConnectionDecorator decorator : connection.getConnectionDecorators()) {
 			final GraphicsAlgorithm graphics = decorator.getGraphicsAlgorithm();
 			final AbstractText text = label(graphics);
@@ -132,11 +156,32 @@ public final class RelationStyle {
 				final int height = size.getHeight() + 6;
 				if (graphics.getX() != -width / 2 || graphics.getY() != -height / 2
 						|| graphics.getWidth() != width || graphics.getHeight() != height) return false;
-			} else if (!isCurrentLine(graphics, color)) {
-				return false;
+			} else {
+				if (!isCurrentLine(graphics, color)) return false;
+				if (graphics instanceof Polyline) {
+					arrows++;
+					if (!isArrow(graphics) || decorator.isActive() || !decorator.isLocationRelative()
+							|| decorator.getLocation() != arrowLocation(connection)
+							|| !Boolean.TRUE.equals(graphics.getFilled())
+							|| !matches(graphics.getBackground(), color)
+							|| graphics.getLineStyle() != LineStyle.SOLID) return false;
+				}
 			}
 		}
-		return true;
+		return arrows == 1;
+	}
+
+	private static double arrowLocation(final Connection connection) {
+		return Graphiti.getLinkService().getBusinessObjectForLinkedPictogramElement(connection) instanceof EInheritLink
+				? 0.0 : 1.0;
+	}
+
+	private static boolean isArrow(final GraphicsAlgorithm graphics) {
+		if (!(graphics instanceof Polygon polygon) || polygon.getPoints().size() != 3) return false;
+		final var points = polygon.getPoints();
+		return points.get(0).getX() == -10 && points.get(0).getY() == 4
+				&& points.get(1).getX() == 0 && points.get(1).getY() == 0
+				&& points.get(2).getX() == -10 && points.get(2).getY() == -4;
 	}
 
 	private static String labelText(final Connection connection, final String current) {

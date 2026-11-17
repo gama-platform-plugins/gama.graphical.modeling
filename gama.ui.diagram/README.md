@@ -50,6 +50,12 @@ editor; subsequent changes on either side do not affect the other.
 Existing `.gadl` files and the **Model diagram** creation wizard retain their
 standalone editing and GAML export behavior.
 
-**Layout** arranges the whole diagram top-down using GAMA's Jungrapht
-Sugiyama layout, after fitting boxes to their contents. It requires a GAMA
+**Layout** arranges the whole diagram from left to right using GAMA's Jungrapht
+Sugiyama layout, after fitting boxes to their contents. Like GAMA's model
+dependencies view, connections follow orthogonal routes with compact filled
+arrowheads. Long connections use routing lanes between
+boxes rather than crossing intermediate boxes. Relation colors and labels are
+retained, and inheritance arrows still point to the parent.
+Use **Layout** to rearrange an existing diagram; opening it preserves saved positions.
+It requires a GAMA
 installation whose `gama.dependencies` bundle exports Jungrapht.
