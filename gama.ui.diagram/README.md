@@ -50,7 +50,7 @@ editor; subsequent changes on either side do not affect the other.
 Existing `.gadl` files and the **Model diagram** creation wizard retain their
 standalone editing and GAML export behavior.
 
-**Layout** arranges the whole diagram from left to right using GAMA's Jungrapht
+**Layout** arranges the whole diagram from top to bottom using GAMA's Jungrapht
 Sugiyama layout, after fitting boxes to their contents. Like GAMA's model
 dependencies view, connections follow orthogonal routes with compact filled
 arrowheads. Long connections use routing lanes between
