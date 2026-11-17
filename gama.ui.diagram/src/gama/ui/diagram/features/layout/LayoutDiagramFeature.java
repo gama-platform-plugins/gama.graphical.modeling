@@ -33,7 +33,7 @@ public class LayoutDiagramFeature extends AbstractCustomFeature {
 	private static final int VERTICAL_GAP = 40;
 
 	private record Position(double x, double y) {}
-	private record Column(double left, double right) {}
+	private record Row(double top, double bottom) {}
 
 	public LayoutDiagramFeature(final IFeatureProvider fp) {
 		super(fp);
@@ -87,10 +87,9 @@ public class LayoutDiagramFeature extends AbstractCustomFeature {
 				.vertexBoundsFunction(shape -> {
 					if (shape == null) return Rectangle.IDENTITY;
 					final var bounds = shape.getGraphicsAlgorithm();
-					// Rotate the top-down algorithm to left-to-right, including its box dimensions.
-					return Rectangle.of(-(bounds.getHeight() + VERTICAL_GAP) / 2.0,
-							-(bounds.getWidth() + HORIZONTAL_GAP) / 2.0,
-							bounds.getHeight() + VERTICAL_GAP, bounds.getWidth() + HORIZONTAL_GAP);
+					return Rectangle.of(-(bounds.getWidth() + HORIZONTAL_GAP) / 2.0,
+							-(bounds.getHeight() + VERTICAL_GAP) / 2.0,
+							bounds.getWidth() + HORIZONTAL_GAP, bounds.getHeight() + VERTICAL_GAP);
 				}).build();
 		if (graph.vertexSet().size() == 1) {
 			model.set(graph.vertexSet().iterator().next(), 0, 0);
@@ -99,7 +98,7 @@ public class LayoutDiagramFeature extends AbstractCustomFeature {
 		}
 
 		final Map<Double, List<Shape>> layers = new TreeMap<>();
-		final Map<Double, Double> widths = new TreeMap<>();
+		final Map<Double, Double> heights = new TreeMap<>();
 		final Map<Connection, List<Position>> articulations = new LinkedHashMap<>();
 		for (final Shape shape : graph.vertexSet()) {
 			final var position = model.get(shape);
@@ -107,60 +106,60 @@ public class LayoutDiagramFeature extends AbstractCustomFeature {
 				throw new IllegalStateException("Invalid diagram layout position");
 			}
 			layers.computeIfAbsent(position.y, key -> new ArrayList<>()).add(shape);
-			widths.merge(position.y, (double) shape.getGraphicsAlgorithm().getWidth(), Math::max);
+			heights.merge(position.y, (double) shape.getGraphicsAlgorithm().getHeight(), Math::max);
 		}
 		for (final Connection connection : graph.edgeSet()) {
 			final var points = algorithm.getEdgeArticulationFunction().apply(connection).stream()
-					.map(point -> new Position(point.y, point.x)).toList();
+					.map(point -> new Position(point.x, point.y)).toList();
 			articulations.put(connection, points);
 			for (final var point : points) {
 				if (!Double.isFinite(point.x()) || !Double.isFinite(point.y())) {
 					throw new IllegalStateException("Invalid diagram connection layout");
 				}
-				widths.putIfAbsent(point.x(), 0.0);
+				heights.putIfAbsent(point.y(), 0.0);
 			}
 		}
 
 		// Repack real and routing-only layers rather than using Jungrapht's square viewport.
 		final Map<Double, Double> centers = new LinkedHashMap<>();
-		final Map<Double, Column> columns = new LinkedHashMap<>();
-		double x = MARGIN;
-		for (final var layer : widths.entrySet()) {
-			final double width = Math.max(12, layer.getValue());
-			final double center = x + width / 2;
+		final Map<Double, Row> rows = new LinkedHashMap<>();
+		double y = MARGIN;
+		for (final var layer : heights.entrySet()) {
+			final double height = Math.max(12, layer.getValue());
+			final double center = y + height / 2;
 			centers.put(layer.getKey(), center);
-			columns.put(center, new Column(x, x + width));
-			x += width + HORIZONTAL_GAP;
+			rows.put(center, new Row(y, y + height));
+			y += height + VERTICAL_GAP;
 		}
-		double verticalScale = 0;
+		double horizontalScale = 0;
 		for (final List<Shape> layer : layers.values()) {
 			layer.sort(Comparator.comparingDouble(shape -> model.get(shape).x));
 			for (int i = 1; i < layer.size(); i++) {
 				final Shape previous = layer.get(i - 1), current = layer.get(i);
 				final double distance = model.get(current).x - model.get(previous).x;
 				if (distance > 1e-8) {
-					final double required = (previous.getGraphicsAlgorithm().getHeight()
-							+ current.getGraphicsAlgorithm().getHeight()) / 2.0 + VERTICAL_GAP;
-					verticalScale = Math.max(verticalScale, required / distance);
+					final double required = (previous.getGraphicsAlgorithm().getWidth()
+							+ current.getGraphicsAlgorithm().getWidth()) / 2.0 + HORIZONTAL_GAP;
+					horizontalScale = Math.max(horizontalScale, required / distance);
 				}
 			}
 		}
 		for (final var points : articulations.values()) {
 			for (final var point : points) {
-				for (final Shape shape : layers.getOrDefault(point.x(), List.of())) {
-					final double distance = Math.abs(point.y() - model.get(shape).x);
+				for (final Shape shape : layers.getOrDefault(point.y(), List.of())) {
+					final double distance = Math.abs(point.x() - model.get(shape).x);
 					if (distance > 1e-8) {
-						verticalScale = Math.max(verticalScale,
-								(shape.getGraphicsAlgorithm().getHeight() / 2.0 + VERTICAL_GAP / 2.0) / distance);
+						horizontalScale = Math.max(horizontalScale,
+								(shape.getGraphicsAlgorithm().getWidth() / 2.0 + HORIZONTAL_GAP / 2.0) / distance);
 					}
 				}
 			}
 		}
-		if (verticalScale == 0) verticalScale = 1;
+		if (horizontalScale == 0) horizontalScale = 1;
 		for (final Shape shape : graph.vertexSet()) {
 			final var bounds = shape.getGraphicsAlgorithm();
-			bounds.setX((int) Math.round(centers.get(model.get(shape).y) - bounds.getWidth() / 2.0));
-			bounds.setY((int) Math.round(model.get(shape).x * verticalScale - bounds.getHeight() / 2.0));
+			bounds.setX((int) Math.round(model.get(shape).x * horizontalScale - bounds.getWidth() / 2.0));
+			bounds.setY((int) Math.round(centers.get(model.get(shape).y) - bounds.getHeight() / 2.0));
 		}
 
 		final Map<Connection, List<Position>> routes = new LinkedHashMap<>();
@@ -176,7 +175,7 @@ public class LayoutDiagramFeature extends AbstractCustomFeature {
 			} else {
 				final var path = new ArrayList<Position>();
 				for (final var point : articulations.get(connection)) {
-					path.add(new Position(centers.get(point.x()), point.y() * verticalScale));
+					path.add(new Position(point.x() * horizontalScale, centers.get(point.y())));
 				}
 				final var start = center(source);
 				final var end = center(target);
@@ -188,22 +187,22 @@ public class LayoutDiagramFeature extends AbstractCustomFeature {
 				if (distance(path.getFirst(), start) > distance(path.getLast(), start)) Collections.reverse(path);
 				path.set(0, start);
 				path.set(path.size() - 1, end);
-				points = route(path, columns, columns.get(centers.get(model.get(source).y)),
-						columns.get(centers.get(model.get(target).y)));
+				points = route(path, rows, rows.get(centers.get(model.get(source).y)),
+						rows.get(centers.get(model.get(target).y)));
 			}
 			routes.put(connection, points);
 		}
-		double minY = graph.vertexSet().stream().mapToInt(shape -> shape.getGraphicsAlgorithm().getY()).min().orElse(0);
+		double minX = graph.vertexSet().stream().mapToInt(shape -> shape.getGraphicsAlgorithm().getX()).min().orElse(0);
 		for (final var points : routes.values()) {
-			for (final var point : points) minY = Math.min(minY, point.y());
+			for (final var point : points) minX = Math.min(minX, point.x());
 		}
-		final int offsetY = MARGIN - (int) Math.floor(minY);
+		final int offsetX = MARGIN - (int) Math.floor(minX);
 		for (final Shape shape : graph.vertexSet()) {
 			final var bounds = shape.getGraphicsAlgorithm();
-			bounds.setY(bounds.getY() + offsetY);
+			bounds.setX(bounds.getX() + offsetX);
 		}
 		for (final var route : routes.entrySet()) {
-			applyRoute((FreeFormConnection) route.getKey(), route.getValue(), offsetY);
+			applyRoute((FreeFormConnection) route.getKey(), route.getValue(), offsetX);
 		}
 	}
 
@@ -216,46 +215,46 @@ public class LayoutDiagramFeature extends AbstractCustomFeature {
 		final var to = target.getGraphicsAlgorithm();
 		final var points = source == target ? loop(source)
 				: route(List.of(center(source), center(target)), Map.of(),
-						new Column(from.getX(), from.getX() + from.getWidth()),
-						new Column(to.getX(), to.getX() + to.getWidth()));
+						new Row(from.getY(), from.getY() + from.getHeight()),
+						new Row(to.getY(), to.getY() + to.getHeight()));
 		applyRoute(connection, points, 0);
 	}
 
 	private static List<Position> loop(final Shape source) {
 		final var bounds = source.getGraphicsAlgorithm();
+		final double bottom = bounds.getY() + bounds.getHeight() + VERTICAL_GAP / 2.0;
 		final double right = bounds.getX() + bounds.getWidth() + HORIZONTAL_GAP / 2.0;
-		final double top = bounds.getY() - VERTICAL_GAP / 2.0;
-		return List.of(new Position(right, center(source).y()), new Position(right, top),
-				new Position(center(source).x(), top));
+		return List.of(new Position(center(source).x(), bottom), new Position(right, bottom),
+				new Position(right, center(source).y()));
 	}
 
-	private static List<Position> route(final List<Position> path, final Map<Double, Column> columns,
-			final Column source, final Column target) {
+	private static List<Position> route(final List<Position> path, final Map<Double, Row> rows,
+			final Row source, final Row target) {
 		final var points = new ArrayList<Position>();
 		for (int i = 1; i < path.size(); i++) {
 			final var previous = path.get(i - 1);
 			final var next = path.get(i);
-			final var left = columns.getOrDefault(previous.x(), source);
-			final var right = columns.getOrDefault(next.x(), target);
-			final boolean forward = previous.x() <= next.x();
-			final boolean overlapping = left.right() > right.left() && right.right() > left.left();
-			final double channel = previous.x() == next.x() || overlapping
-					? Math.max(left.right(), right.right()) + HORIZONTAL_GAP / 2.0
-					: forward ? (left.right() + right.left()) / 2
-					: (left.left() + right.right()) / 2;
+			final var top = rows.getOrDefault(previous.y(), source);
+			final var bottom = rows.getOrDefault(next.y(), target);
+			final boolean forward = previous.y() <= next.y();
+			final boolean overlapping = top.bottom() > bottom.top() && bottom.bottom() > top.top();
+			final double channel = previous.y() == next.y() || overlapping
+					? Math.max(top.bottom(), bottom.bottom()) + VERTICAL_GAP / 2.0
+					: forward ? (top.bottom() + bottom.top()) / 2
+					: (top.top() + bottom.bottom()) / 2;
 			if (i > 1) points.add(previous);
-			points.add(new Position(channel, previous.y()));
-			points.add(new Position(channel, next.y()));
+			points.add(new Position(previous.x(), channel));
+			points.add(new Position(next.x(), channel));
 		}
 		return points;
 	}
 
-	private static void applyRoute(final FreeFormConnection connection, final List<Position> points, final int offsetY) {
+	private static void applyRoute(final FreeFormConnection connection, final List<Position> points, final int offsetX) {
 		final var bends = connection.getBendpoints();
 		bends.clear();
 		for (final var point : points) {
-			final Point bend = Graphiti.getGaService().createPoint((int) Math.round(point.x()),
-					(int) Math.round(point.y()) + offsetY);
+			final Point bend = Graphiti.getGaService().createPoint((int) Math.round(point.x()) + offsetX,
+					(int) Math.round(point.y()));
 			if (bends.isEmpty() || bend.getX() != bends.getLast().getX()
 					|| bend.getY() != bends.getLast().getY()) bends.add(bend);
 		}
