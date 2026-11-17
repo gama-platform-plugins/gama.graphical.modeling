@@ -843,13 +843,13 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 	public void addEOject(final EObject obj) {
 		final List<String> ids = computeIds(obj);
 		if (obj instanceof EVariable) {
-			idsEObjects.put(ids, ((EVariable) obj).eContainer());
+			idsEObjects.put(ids, (obj).eContainer());
 		} else if (obj instanceof EParameter) {
-			idsEObjects.put(ids, ((EParameter) obj).eContainer());
+			idsEObjects.put(ids, (obj).eContainer());
 		} else if (obj instanceof EFacet) {
-			idsEObjects.put(ids, ((EFacet) obj).eContainer());
+			idsEObjects.put(ids, ( obj).eContainer());
 		} else if (obj instanceof EMonitor) {
-			idsEObjects.put(ids, ((EMonitor) obj).eContainer());
+			idsEObjects.put(ids, (obj).eContainer());
 		} else {
 			idsEObjects.put(ids, obj);
 		}

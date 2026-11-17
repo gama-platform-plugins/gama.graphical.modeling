@@ -1,7 +1,7 @@
 /*******************************************************************************************************
  *
- * ModelGenerator.java, in gama.ui.diagram, is part of the source code of the GAMA modeling and simulation
- * platform (v.1.9.3).
+ * ModelGenerator.java, in gama.ui.diagram, is part of the source code of the GAMA modeling and simulation platform
+ * (v.1.9.3).
  *
  * (c) 2007-2024 UMI 209 UMMISCO IRD/SU & Partners (IRIT, MIAT, TLU, CTU)
  *
@@ -17,7 +17,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -27,7 +26,6 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.graphiti.features.IFeatureProvider;
 import org.eclipse.graphiti.mm.pictograms.Diagram;
 import org.eclipse.graphiti.mm.pictograms.Shape;
-import gama.api.kernel.species.IModelSpecies;
 import org.eclipse.xtext.resource.SynchronizedXtextResourceSet;
 import org.eclipse.xtext.resource.XtextResourceSet;
 
@@ -37,6 +35,7 @@ import gama.api.compilation.GamlCompilationError;
 import gama.api.compilation.descriptions.IExperimentDescription;
 import gama.api.compilation.descriptions.IModelDescription;
 import gama.api.constants.IGamlIssue;
+import gama.api.kernel.species.IModelSpecies;
 import gama.ui.diagram.editor.GamaDiagramEditor;
 import gama.ui.diagram.editor.ModelStructure;
 import gama.ui.diagram.features.ExampleUtil;
@@ -45,6 +44,7 @@ import gama.ui.diagram.metamodel.EActionLink;
 import gama.ui.diagram.metamodel.EAspect;
 import gama.ui.diagram.metamodel.EAspectLink;
 import gama.ui.diagram.metamodel.EChartLayer;
+import gama.ui.diagram.metamodel.EClassSpecies;
 import gama.ui.diagram.metamodel.EDisplay;
 import gama.ui.diagram.metamodel.EDisplayLink;
 import gama.ui.diagram.metamodel.EEquation;
@@ -68,7 +68,6 @@ import gama.ui.diagram.metamodel.EReflexLink;
 import gama.ui.diagram.metamodel.ERule;
 import gama.ui.diagram.metamodel.ERuleLink;
 import gama.ui.diagram.metamodel.ESpecies;
-import gama.ui.diagram.metamodel.EClassSpecies;
 import gama.ui.diagram.metamodel.EState;
 import gama.ui.diagram.metamodel.EStateLink;
 import gama.ui.diagram.metamodel.ESubSpeciesLink;
@@ -164,9 +163,8 @@ public class ModelGenerator {
 	 */
 	public static String getPath(final IFeatureProvider fp, final Diagram diagram) {
 		final List<Shape> contents = diagram.getChildren();
-		URI uri = null;
 		if (contents == null) return "";
-		uri = EcoreUtil.getURI((EObject) fp.getBusinessObjectForPictogramElement(contents.get(0)));
+		URI uri = EcoreUtil.getURI((EObject) fp.getBusinessObjectForPictogramElement(contents.get(0)));
 		uri = uri.trimFragment();
 		if (uri.isPlatform()) { uri = URI.createURI(uri.toPlatformString(true)); }
 		// String containerStr = "/"+ uri.segment(0);
@@ -224,7 +222,7 @@ public class ModelGenerator {
 	public static boolean hasSyntaxError(final IFeatureProvider fp, final String expression, final boolean isExpression,
 			final boolean isString) {
 		if (expression.replace(" ", "").isEmpty()) return false;
-		URI du = ((GamaDiagramEditor) ExampleUtil.getDiagramEditor(fp)).getDiagramEditorInput().getUri();
+		URI du = ExampleUtil.getDiagramEditor(fp).getDiagramEditorInput().getUri();
 
 		final URI uri = syntaxCheckURI(du);
 
@@ -251,6 +249,13 @@ public class ModelGenerator {
 		}
 	}
 
+	/**
+	 * Syntax check URI.
+	 *
+	 * @param diagramURI
+	 *            the diagram URI
+	 * @return the uri
+	 */
 	static URI syntaxCheckURI(final URI diagramURI) {
 		// Compiler listeners and validation contexts are keyed by URI, even across resource sets.
 		return diagramURI.trimFragment().trimFileExtension().appendFileExtension("syntax-check.gaml");
@@ -299,6 +304,15 @@ public class ModelGenerator {
 		return null;
 	}
 
+	/**
+	 * Validate diagram resource.
+	 *
+	 * @param resource
+	 *            the resource
+	 * @param listener
+	 *            the listener
+	 * @return the list
+	 */
 	static List<GamlCompilationError> validateDiagramResource(final GamlResource resource,
 			final IGamlBuilderListener listener) {
 		final IModelDescription description = resource.buildCompleteDescription();
@@ -307,18 +321,18 @@ public class ModelGenerator {
 			final List<IExperimentDescription> experiments = new ArrayList<>();
 			if (validated != null) {
 				for (final IExperimentDescription experiment : validated.getExperiments()) {
-					if (!experiment.isAbstract()) experiments.add(experiment);
+					if (!experiment.isAbstract()) { experiments.add(experiment); }
 				}
 			}
 			final List<GamlCompilationError> errors = new ArrayList<>();
 			for (final GamlCompilationError error : resource.getValidationContext().getInternalErrors()) {
-				if (error.isError()) errors.add(error);
+				if (error.isError()) { errors.add(error); }
 			}
 			// Publish before disposal, directly to this editor rather than the URI-keyed global listener.
 			listener.validationEnded(validated, experiments, resource.getValidationContext());
 			return errors;
 		} finally {
-			if (description != null) description.dispose();
+			if (description != null) { description.dispose(); }
 		}
 	}
 
@@ -379,6 +393,13 @@ public class ModelGenerator {
 		return model.toString();
 	}
 
+	/**
+	 * Ordered reflexes.
+	 *
+	 * @param species
+	 *            the species
+	 * @return the list
+	 */
 	public static List<EReflexLink> orderedReflexes(final ESpecies species) {
 		final var remaining = new ArrayList<>(species.getReflexLinks());
 		remaining.removeIf(link -> link.getReflex() == null);
@@ -390,8 +411,9 @@ public class ModelGenerator {
 			}
 		}
 		for (final String name : species.getReflexList()) {
-			final var next = remaining.stream().filter(link -> java.util.Objects.equals(name == null ? "" : name,
-					link.getReflex().getName() == null ? "" : link.getReflex().getName()))
+			final var next = remaining.stream()
+					.filter(link -> java.util.Objects.equals(name == null ? "" : name,
+							link.getReflex().getName() == null ? "" : link.getReflex().getName()))
 					.findFirst().orElse(null);
 			if (next != null) {
 				result.add(next);
@@ -402,6 +424,17 @@ public class ModelGenerator {
 		return result;
 	}
 
+	/**
+	 * Define species body.
+	 *
+	 * @param species
+	 *            the species
+	 * @param level
+	 *            the level
+	 * @param id
+	 *            the id
+	 * @return the string
+	 */
 	private static String defineSpeciesBody(final ESpecies species, final int level, final String id) {
 		final StringBuilder model = new StringBuilder();
 		for (final EVariable var : species.getVariables()) { model.append(defineVariable(var, level + 1)); }
@@ -542,14 +575,16 @@ public class ModelGenerator {
 			arguments += (arguments.isEmpty() ? "" : ", ") + var.getType() + " " + var.getName()
 					+ (var.getInit() == null || var.getInit().isEmpty() ? "" : " <- " + var.getInit());
 		}
-		result.append(sp).append(returnType).append(" ").append(manageName(action.getName()))
-				.append("(").append(arguments).append(")");
+		result.append(sp).append(returnType).append(" ").append(manageName(action.getName())).append("(")
+				.append(arguments).append(")");
 		boolean virtual = false;
 		for (final EFacet facet : action.getFacets()) {
 			if (facet.getValue() == null || facet.getValue().isBlank()
-					|| List.of("name", "type", "returns").contains(facet.getName())) continue;
+					|| List.of("name", "type", "returns").contains(facet.getName())) {
+				continue;
+			}
 			result.append(" ").append(facet.getName()).append(":").append(facet.getValue());
-			if ("virtual".equals(facet.getName()) && "true".equals(facet.getValue().trim())) virtual = true;
+			if ("virtual".equals(facet.getName()) && "true".equals(facet.getValue().trim())) { virtual = true; }
 		}
 		if (virtual) return result.append(";").append(EL).toString();
 		result.append(" {").append(EL);
@@ -573,7 +608,8 @@ public class ModelGenerator {
 		StringBuilder result = new StringBuilder();
 		final String code = species.getInit();
 		if ((code == null || code.isBlank()) && species.getReflexLinks().stream()
-				.anyMatch(link -> link.getReflex() != null && "init".equals(link.getReflex().getKind()))) return "";
+				.anyMatch(link -> link.getReflex() != null && "init".equals(link.getReflex().getKind())))
+			return "";
 		String sp = "";
 		for (int i = 0; i < level; i++) { sp += "\t"; }
 		result.append(sp).append("init {").append(EL);
@@ -631,9 +667,7 @@ public class ModelGenerator {
 			code = ((ETask) object).getGamlCode();
 		} else if (object instanceof EPlan) {
 			code = ((EPlan) object).getGamlCode();
-		} else if (object instanceof EPerceive) {
-			code = ((EPerceive) object).getGamlCode();
-		}
+		} else if (object instanceof EPerceive) { code = ((EPerceive) object).getGamlCode(); }
 		result.append(" {").append(EL);
 		if (code != null && !code.isEmpty()) { result.append(code); }
 
@@ -672,24 +706,40 @@ public class ModelGenerator {
 				StringBuilder code = new StringBuilder().append(sp).append(level >= 0 ? "\t" : "").append("draw ");
 				final String val = lay.getShapeType();
 				if (val == null) { continue; }
-				if ("polyline".equals(val) || "polygon".equals(val)) {
-					code.append(val).append("(").append(lay.getPoints()).append(")");
-				} else if ("circle".equals(val) || "sphere".equals(val)) {
-					code.append(val).append("(").append(lay.getRadius()).append(")");
-				} else if ("square".equals(val) || "cube".equals(val) || "pyramid".equals(val)) {
-					code.append(val).append("(").append(lay.getSize()).append(")");
-				} else if ("rectangle".equals(val) || "hexagon".equals(val)) {
-					code.append(val).append("({").append(lay.getWidth()).append(",").append(lay.getHeigth())
-							.append("})");
-				} else if ("expression".equals(val)) {
-					code.append(lay.getExpression());
-				} else if ("image".equals(val)) {
-					code.append("file(\"").append(lay.getPath()).append("\")")
-							.append(lay.getImageSize() != null && !lay.getImageSize().isEmpty() ? ""
-									: " size:" + lay.getSize());
-				} else if ("text".equals(val)) {
-					code.append("\"").append(lay.getText()).append("\"").append(
-							lay.getTextSize() != null && !lay.getTextSize().isEmpty() ? "" : " size:" + lay.getSize());
+				switch (val) {
+					case "polyline":
+					case "polygon":
+						code.append(val).append("(").append(lay.getPoints()).append(")");
+						break;
+					case "circle":
+					case "sphere":
+						code.append(val).append("(").append(lay.getRadius()).append(")");
+						break;
+					case "square":
+					case "cube":
+					case "pyramid":
+						code.append(val).append("(").append(lay.getSize()).append(")");
+						break;
+					case "rectangle":
+					case "hexagon":
+						code.append(val).append("({").append(lay.getWidth()).append(",").append(lay.getHeigth())
+								.append("})");
+						break;
+					case "expression":
+						code.append(lay.getExpression());
+						break;
+					case "image":
+						code.append("file(\"").append(lay.getPath()).append("\")")
+								.append(lay.getImageSize() != null && !lay.getImageSize().isEmpty() ? ""
+										: " size:" + lay.getSize());
+						break;
+					case "text":
+						code.append("\"").append(lay.getText()).append("\"")
+								.append(lay.getTextSize() != null && !lay.getTextSize().isEmpty() ? ""
+										: " size:" + lay.getSize());
+						break;
+					default:
+						break;
 				}
 				if (lay.getIsColorCst()) {
 					code.append(" color: rgb(").append(lay.getColorRBG().toString().replace("[", "").replace("]", ""))
@@ -729,35 +779,36 @@ public class ModelGenerator {
 	static String defineExperiment(final EExperiment exp, final String id) {
 		if (exp == null) return "";
 		final String kind = ExperimentKind.of(exp);
-		String model = EL + EL + "experiment " + gama.api.utils.StringUtils.toGamlString(exp.getName())
-				+ " type:" + kind + " ";
+		StringBuilder model = new StringBuilder().append(EL).append(EL).append("experiment ")
+				.append(gama.api.utils.StringUtils.toGamlString(exp.getName())).append(" type:").append(kind)
+				.append(" ");
 		for (final EFacet facet : exp.getFacets()) {
-			if ("type".equals(facet.getName()) || facet.getValue() == null || facet.getValue().isBlank()) continue;
-			model += " " + facet.getName() + ":" + facet.getValue();
+			if ("type".equals(facet.getName()) || facet.getValue() == null || facet.getValue().isBlank()) { continue; }
+			model.append(" ").append(facet.getName()).append(":").append(facet.getValue());
 		}
 		if (!exp.getSkills().isEmpty() && exp.getFacets().stream().noneMatch(f -> "skills".equals(f.getName()))) {
-			model += " skills:" + exp.getSkills();
+			model.append(" skills:").append(exp.getSkills());
 		}
 		if (exp.getInheritsFrom() != null && exp.getFacets().stream().noneMatch(f -> "parent".equals(f.getName()))) {
-			model += " parent:" + exp.getInheritsFrom().getName();
+			model.append(" parent:").append(exp.getInheritsFrom().getName());
 		}
-		model += " {" + EL + defineSpeciesBody(exp, 0, id);
-		if (exp.getGamlCode() != null) model += exp.getGamlCode();
-		for (final EParameter parameter : exp.getParameters()) model += defineParameter(parameter);
+		model.append(" {").append(EL).append(defineSpeciesBody(exp, 0, id));
+		if (exp.getGamlCode() != null) { model.append(exp.getGamlCode()); }
+		for (final EParameter parameter : exp.getParameters()) { model.append(defineParameter(parameter)); }
 		if ("gui".equals(kind) || !exp.getMonitors().isEmpty() || !exp.getDisplayLinks().isEmpty()) {
-			model += "\toutput{";
-			for (final EMonitor mon : exp.getMonitors()) { model += defineMonitor(mon); }
+			model.append("\toutput{");
+			for (final EMonitor mon : exp.getMonitors()) { model.append(defineMonitor(mon)); }
 			for (final EDisplayLink link : exp.getDisplayLinks()) {
 				final String idA = ModelStructure.getElementId(link.getDisplay());
 				final boolean isId = idA.equals(id);
-				if (isId) { model += EL + idA + EL; }
-				model += defineDisplay(link);
-				if (isId) { model += EL + idA + EL; }
+				if (isId) { model.append(EL).append(idA).append(EL); }
+				model.append(defineDisplay(link));
+				if (isId) { model.append(EL).append(idA).append(EL); }
 
 			}
-			model += EL + "\t}" + EL;
+			model.append(EL).append("\t}").append(EL);
 		}
-		return model + "}" + EL;
+		return model.append("}").append(EL).toString();
 	}
 
 	/**
@@ -780,6 +831,13 @@ public class ModelGenerator {
 		return parStr.toString();
 	}
 
+	/**
+	 * Parameter facets.
+	 *
+	 * @param parameter
+	 *            the parameter
+	 * @return the java.util. map
+	 */
 	public static java.util.Map<String, String> parameterFacets(final EParameter parameter) {
 		final var facets = new java.util.LinkedHashMap<String, String>();
 		facets.put("init", parameter.getInit());
@@ -791,7 +849,7 @@ public class ModelGenerator {
 			facets.put("category", gama.api.utils.StringUtils.toGamlString(parameter.getCategory()));
 		}
 		for (final var facet : parameter.getFacets()) {
-			if (!List.of("name", "var").contains(facet.getName())) facets.put(facet.getName(), facet.getValue());
+			if (!List.of("name", "var").contains(facet.getName())) { facets.put(facet.getName(), facet.getValue()); }
 		}
 		facets.values().removeIf(value -> value == null || value.isBlank());
 		return facets;
@@ -810,7 +868,10 @@ public class ModelGenerator {
 		parStr.append(gama.api.utils.StringUtils.toGamlString(mon.getName()));
 		if (mon.getValue() != null && !mon.getValue().isEmpty()) { parStr.append(" value:").append(mon.getValue()); }
 		for (final var facet : mon.getFacets()) {
-			if (List.of("name", "value").contains(facet.getName()) || facet.getValue() == null || facet.getValue().isBlank()) continue;
+			if (List.of("name", "value").contains(facet.getName()) || facet.getValue() == null
+					|| facet.getValue().isBlank()) {
+				continue;
+			}
 			parStr.append(" ").append(facet.getName()).append(":").append(facet.getValue());
 		}
 		parStr.append(";").append(EL);
@@ -841,113 +902,123 @@ public class ModelGenerator {
 		return model.toString();
 	}
 
+	/**
+	 * Display body.
+	 *
+	 * @param disp
+	 *            the disp
+	 * @return the string
+	 */
 	public static String displayBody(final EDisplay disp) {
 		final var model = new StringBuilder();
 		if (disp.isDefineGamlCode()) {
 			final String code = disp.getGamlCode();
-			if (code != null) model.append(code);
+			if (code != null) { model.append(code); }
 		} else {
-			for (final ELayer lay : disp.getLayers()) {
-				model.append(defineLayer(lay));
-			}
-			if (disp.getTrailingSource() != null) model.append(disp.getTrailingSource());
+			for (final ELayer lay : disp.getLayers()) { model.append(defineLayer(lay)); }
+			if (disp.getTrailingSource() != null) { model.append(disp.getTrailingSource()); }
 		}
 		return model.toString();
 	}
 
+	/**
+	 * Define layer.
+	 *
+	 * @param lay
+	 *            the lay
+	 * @return the string
+	 */
 	public static String defineLayer(final ELayer lay) {
 		if (lay.getGamlCode() != null && !lay.getGamlCode().isBlank()) return lay.getGamlCode();
 		final var model = new StringBuilder();
 		if (lay.getType() != null) {
-				model.append("\n\t\t\t");
-				if ("species".equals(lay.getType())) {
-					model.append(lay.getType()).append(" ").append(lay.getSpecies()).append(
-							lay.getAspect() == null || lay.getAspect().isEmpty() || "default".equals(lay.getAspect())
-									? "" : " aspect: " + lay.getAspect());
-				} else if ("grid".equals(lay.getType())) {
-					model.append(lay.getType()).append(" ").append(lay.getGrid());
-					if (lay.getIsColorCst() == null || lay.getIsColorCst()) {
-						if (lay.getColorRBG().size() == 3 && lay.isShowLines()) {
-							model.append(" border:rgb(").append(lay.getColorRBG().get(0)).append(",")
-									.append(lay.getColorRBG().get(1)).append(",").append(lay.getColorRBG().get(2))
-									.append(")");
-						}
-					} else if (lay.getColor() != null && !"rgb(255,255,255)".equals(lay.getColor())
-							&& !lay.getColor().isEmpty()) {
-						model.append(" border:").append(lay.getColor());
+			model.append("\n\t\t\t");
+			if ("species".equals(lay.getType())) {
+				model.append(lay.getType()).append(" ").append(lay.getSpecies()).append(
+						lay.getAspect() == null || lay.getAspect().isEmpty() || "default".equals(lay.getAspect()) ? ""
+								: " aspect: " + lay.getAspect());
+			} else if ("grid".equals(lay.getType())) {
+				model.append(lay.getType()).append(" ").append(lay.getGrid());
+				if (lay.getIsColorCst() == null || lay.getIsColorCst()) {
+					if (lay.getColorRBG().size() == 3 && lay.isShowLines()) {
+						model.append(" border:rgb(").append(lay.getColorRBG().get(0)).append(",")
+								.append(lay.getColorRBG().get(1)).append(",").append(lay.getColorRBG().get(2))
+								.append(")");
 					}
-				} else if ("agents".equals(lay.getType())) {
-					model.append(lay.getType()).append(" ").append(gama.api.utils.StringUtils.toGamlString(lay.getName())).append(" value:")
-							.append(lay.getAgents()).append(lay.getAspect() == null || lay.getAspect().isEmpty() ? ""
-									: " aspect: " + lay.getAspect());
-				} else if ("image".equals(lay.getType())) {
-					model.append(lay.getType()).append(" ").append(gama.api.utils.StringUtils.toGamlString(lay.getFile()))
-							.append(lay.getSize() == null || lay.getSize().isBlank() ? "" : " size: " + lay.getSize());
-					if (lay.getIsColorCst() == null || lay.getIsColorCst()) {
-						if (lay.getColorRBG().size() == 3
-								&& (!"255".equals(lay.getColorRBG().get(0)) || !"255".equals(lay.getColorRBG().get(1))
-										|| !"255".equals(lay.getColorRBG().get(2)))) {
-							model.append(" color:rgb(").append(lay.getColorRBG().get(0)).append(",")
-									.append(lay.getColorRBG().get(1)).append(",").append(lay.getColorRBG().get(2))
-									.append(")");
-						}
-					} else if (lay.getColor() != null && !"rgb(255,255,255)".equals(lay.getColor())
-							&& !lay.getColor().isEmpty()) {
-						model.append(" color:").append(lay.getColor());
-					}
-				} else if ("text".equals(lay.getType())) {
-					model.append("graphics ").append(gama.api.utils.StringUtils.toGamlString(lay.getName()))
-							.append(" { draw ").append(gama.api.utils.StringUtils.toGamlString(lay.getText()))
-							.append(lay.getSize() == null || lay.getSize().isBlank() ? "" : " size: " + lay.getSize());
-					if (lay.getIsColorCst() == null || lay.getIsColorCst()) {
-						if (lay.getColorRBG().size() == 3
-								&& (!"255".equals(lay.getColorRBG().get(0)) || !"255".equals(lay.getColorRBG().get(1))
-										|| !"255".equals(lay.getColorRBG().get(2)))) {
-							model.append(" color:rgb(").append(lay.getColorRBG().get(0)).append(",")
-									.append(lay.getColorRBG().get(1)).append(",").append(lay.getColorRBG().get(2))
-									.append(")");
-						}
-					} else if (lay.getColor() != null && !"rgb(255,255,255)".equals(lay.getColor())
-							&& !lay.getColor().isEmpty()) {
-						model.append(" color:").append(lay.getColor());
-					}
-				} else if ("chart".equals(lay.getType())) {
-					String background = "";
-					if (lay.getIsColorCst() == null || lay.getIsColorCst()) {
-						if (lay.getColorRBG().size() == 3
-								&& (!"255".equals(lay.getColorRBG().get(0)) || !"255".equals(lay.getColorRBG().get(1))
-										|| !"255".equals(lay.getColorRBG().get(2)))) {
-							background = " background:rgb(" + lay.getColorRBG().get(0) + "," + lay.getColorRBG().get(1)
-									+ "," + lay.getColorRBG().get(2) + ")";
-						}
-					} else if (lay.getColor() != null && !"rgb(255,255,255)".equals(lay.getColor())
-							&& !lay.getColor().isEmpty()) {
-						background = " background:" + lay.getColor();
-					}
-					model.append(lay.getType()).append(" ").append(gama.api.utils.StringUtils.toGamlString(lay.getName())).append(" type:")
-							.append(lay.getChart_type()).append(background);
+				} else if (lay.getColor() != null && !"rgb(255,255,255)".equals(lay.getColor())
+						&& !lay.getColor().isEmpty()) {
+					model.append(" border:").append(lay.getColor());
 				}
+			} else if ("agents".equals(lay.getType())) {
+				model.append(lay.getType()).append(" ").append(gama.api.utils.StringUtils.toGamlString(lay.getName()))
+						.append(" value:").append(lay.getAgents())
+						.append(lay.getAspect() == null || lay.getAspect().isEmpty() ? ""
+								: " aspect: " + lay.getAspect());
+			} else if ("image".equals(lay.getType())) {
+				model.append(lay.getType()).append(" ").append(gama.api.utils.StringUtils.toGamlString(lay.getFile()))
+						.append(lay.getSize() == null || lay.getSize().isBlank() ? "" : " size: " + lay.getSize());
+				if (lay.getIsColorCst() == null || lay.getIsColorCst()) {
+					if (lay.getColorRBG().size() == 3 && (255 != lay.getColorRBG().get(0)
+							|| 255 != lay.getColorRBG().get(1) || 255 != lay.getColorRBG().get(2))) {
+						model.append(" color:rgb(").append(lay.getColorRBG().get(0)).append(",")
+								.append(lay.getColorRBG().get(1)).append(",").append(lay.getColorRBG().get(2))
+								.append(")");
+					}
+				} else if (lay.getColor() != null && !"rgb(255,255,255)".equals(lay.getColor())
+						&& !lay.getColor().isEmpty()) {
+					model.append(" color:").append(lay.getColor());
+				}
+			} else if ("text".equals(lay.getType())) {
+				model.append("graphics ").append(gama.api.utils.StringUtils.toGamlString(lay.getName()))
+						.append(" { draw ").append(gama.api.utils.StringUtils.toGamlString(lay.getText()))
+						.append(lay.getSize() == null || lay.getSize().isBlank() ? "" : " size: " + lay.getSize());
+				if (lay.getIsColorCst() == null || lay.getIsColorCst()) {
+					if (lay.getColorRBG().size() == 3 && (255 != lay.getColorRBG().get(0)
+							|| 255 != lay.getColorRBG().get(1) || 255 != lay.getColorRBG().get(2))) {
+						model.append(" color:rgb(").append(lay.getColorRBG().get(0)).append(",")
+								.append(lay.getColorRBG().get(1)).append(",").append(lay.getColorRBG().get(2))
+								.append(")");
+					}
+				} else if (lay.getColor() != null && !"rgb(255,255,255)".equals(lay.getColor())
+						&& !lay.getColor().isEmpty()) {
+					model.append(" color:").append(lay.getColor());
+				}
+			} else if ("chart".equals(lay.getType())) {
+				String background = "";
+				if (lay.getIsColorCst() == null || lay.getIsColorCst()) {
+					if (lay.getColorRBG().size() == 3 && (255 != lay.getColorRBG().get(0)
+							|| 255 != lay.getColorRBG().get(1) || 255 != lay.getColorRBG().get(2))) {
+						background = " background:rgb(" + lay.getColorRBG().get(0) + "," + lay.getColorRBG().get(1)
+								+ "," + lay.getColorRBG().get(2) + ")";
+					}
+				} else if (lay.getColor() != null && !"rgb(255,255,255)".equals(lay.getColor())
+						&& !lay.getColor().isEmpty()) {
+					background = " background:" + lay.getColor();
+				}
+				model.append(lay.getType()).append(" ").append(gama.api.utils.StringUtils.toGamlString(lay.getName()))
+						.append(" type:").append(lay.getChart_type()).append(background);
+			}
 
-				for (final EFacet facet : lay.getFacets()) {
-					if (facet.getValue() == null || facet.getValue().isBlank()) { continue; }
-					model.append(" ").append(facet.getName()).append(":").append(facet.getValue());
-				}
-				if ("chart".equals(lay.getType())) {
-					model.append("{").append(EL);
-					if (lay.getChartlayers() != null && !lay.getChartlayers().isEmpty()) {
-						for (final EChartLayer cl : lay.getChartlayers()) {
-							model.append("\t\t\t\tdata ").append(gama.api.utils.StringUtils.toGamlString(cl.getName())).append(" style:")
-									.append(cl.getStyle()).append(" value:")
-									.append(cl.getValue() == null || cl.getValue().isEmpty() ? "0.0" : cl.getValue())
-									.append(cl.getColor() == null || cl.getColor().isEmpty() ? ""
-											: " color:" + cl.getColor())
-									.append(";").append(EL);
-						}
+			for (final EFacet facet : lay.getFacets()) {
+				if (facet.getValue() == null || facet.getValue().isBlank()) { continue; }
+				model.append(" ").append(facet.getName()).append(":").append(facet.getValue());
+			}
+			if ("chart".equals(lay.getType())) {
+				model.append("{").append(EL);
+				if (lay.getChartlayers() != null && !lay.getChartlayers().isEmpty()) {
+					for (final EChartLayer cl : lay.getChartlayers()) {
+						model.append("\t\t\t\tdata ").append(gama.api.utils.StringUtils.toGamlString(cl.getName()))
+								.append(" style:").append(cl.getStyle()).append(" value:")
+								.append(cl.getValue() == null || cl.getValue().isEmpty() ? "0.0" : cl.getValue())
+								.append(cl.getColor() == null || cl.getColor().isEmpty() ? ""
+										: " color:" + cl.getColor())
+								.append(";").append(EL);
 					}
-					model.append(EL).append("\t\t\t}").append(EL);
-				} else {
-					model.append(";").append("text".equals(lay.getType()) ? " }" : "").append(EL);
 				}
+				model.append(EL).append("\t\t\t}").append(EL);
+			} else {
+				model.append(";").append("text".equals(lay.getType()) ? " }" : "").append(EL);
+			}
 		}
 		return model.toString();
 	}
@@ -980,8 +1051,8 @@ public class ModelGenerator {
 			String modelName = diagram.getName();
 			if (!Character.isLetter(modelName.charAt(0))) { modelName = "_" + modelName; }
 			final var documentation = DiagramModelDocumentation.read(diagram);
-			model = (documentation.isEmpty() ? "" : documentation.comment(modelName, EL) + EL)
-					+ "model " + modelName + EL + EL + "global";
+			model = (documentation.isEmpty() ? "" : documentation.comment(modelName, EL) + EL) + "model " + modelName
+					+ EL + EL + "global";
 
 			if (worldAgent.getSkills() != null && !worldAgent.getSkills().isEmpty()) {
 				model += " skills:" + worldAgent.getSkills();

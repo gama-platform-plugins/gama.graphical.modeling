@@ -1,7 +1,7 @@
 /*******************************************************************************************************
  *
- * GamaFeatureProvider.java, in gama.ui.diagram, is part of the source code of the GAMA modeling and
- * simulation platform (v.1.9.3).
+ * GamaFeatureProvider.java, in gama.ui.diagram, is part of the source code of the GAMA modeling and simulation platform
+ * (v.1.9.3).
  *
  * (c) 2007-2024 UMI 209 UMMISCO IRD/SU & Partners (IRIT, MIAT, TLU, CTU)
  *
@@ -20,6 +20,7 @@ import org.eclipse.graphiti.features.ICreateFeature;
 import org.eclipse.graphiti.features.IDeleteFeature;
 import org.eclipse.graphiti.features.IFeature;
 import org.eclipse.graphiti.features.ILayoutFeature;
+import org.eclipse.graphiti.features.IReconnectionFeature;
 import org.eclipse.graphiti.features.IRemoveFeature;
 import org.eclipse.graphiti.features.IUpdateFeature;
 import org.eclipse.graphiti.features.context.IAddContext;
@@ -27,6 +28,7 @@ import org.eclipse.graphiti.features.context.ICustomContext;
 import org.eclipse.graphiti.features.context.IDeleteContext;
 import org.eclipse.graphiti.features.context.ILayoutContext;
 import org.eclipse.graphiti.features.context.IPictogramElementContext;
+import org.eclipse.graphiti.features.context.IReconnectionContext;
 import org.eclipse.graphiti.features.context.IRemoveContext;
 import org.eclipse.graphiti.features.context.IUpdateContext;
 import org.eclipse.graphiti.features.context.impl.AddConnectionContext;
@@ -34,14 +36,12 @@ import org.eclipse.graphiti.features.context.impl.AddContext;
 import org.eclipse.graphiti.features.context.impl.CreateConnectionContext;
 import org.eclipse.graphiti.features.context.impl.CreateContext;
 import org.eclipse.graphiti.features.custom.ICustomFeature;
-import org.eclipse.graphiti.ui.features.DefaultDeleteFeature;
-import org.eclipse.graphiti.features.IReconnectionFeature;
-import org.eclipse.graphiti.features.context.IReconnectionContext;
 import org.eclipse.graphiti.mm.pictograms.AnchorContainer;
 import org.eclipse.graphiti.mm.pictograms.ContainerShape;
 import org.eclipse.graphiti.mm.pictograms.Diagram;
 import org.eclipse.graphiti.mm.pictograms.PictogramElement;
 import org.eclipse.graphiti.services.Graphiti;
+import org.eclipse.graphiti.ui.features.DefaultDeleteFeature;
 import org.eclipse.graphiti.ui.features.DefaultFeatureProvider;
 
 import gama.ui.diagram.features.add.AddActionFeature;
@@ -75,10 +75,11 @@ import gama.ui.diagram.features.add.AddWorldFeature;
 import gama.ui.diagram.features.create.CreateActionLinkFeature;
 import gama.ui.diagram.features.create.CreateAspectLinkFeature;
 import gama.ui.diagram.features.create.CreateBatchExperimentLinkFeature;
+import gama.ui.diagram.features.create.CreateClassInheritingLinkFeature;
+import gama.ui.diagram.features.create.CreateClassLinkFeature;
 import gama.ui.diagram.features.create.CreateDisplayLinkFeature;
 import gama.ui.diagram.features.create.CreateEquationLinkFeature;
 import gama.ui.diagram.features.create.CreateGuiExperimentLinkFeature;
-import gama.ui.diagram.features.create.CreateTestExperimentLinkFeature;
 import gama.ui.diagram.features.create.CreateInheritingLinkFeature;
 import gama.ui.diagram.features.create.CreatePerceiveLinkFeature;
 import gama.ui.diagram.features.create.CreatePlanLinkFeature;
@@ -87,9 +88,8 @@ import gama.ui.diagram.features.create.CreateRuleLinkFeature;
 import gama.ui.diagram.features.create.CreateStateLinkFeature;
 import gama.ui.diagram.features.create.CreateSubGridLinkFeature;
 import gama.ui.diagram.features.create.CreateSubSpeciesLinkFeature;
-import gama.ui.diagram.features.create.CreateClassLinkFeature;
-import gama.ui.diagram.features.create.CreateClassInheritingLinkFeature;
 import gama.ui.diagram.features.create.CreateTaskLinkFeature;
+import gama.ui.diagram.features.create.CreateTestExperimentLinkFeature;
 import gama.ui.diagram.features.layout.LayoutCommonFeature;
 import gama.ui.diagram.features.layout.LayoutDiagramFeature;
 import gama.ui.diagram.features.layout.LayoutEExperimentFeature;
@@ -136,15 +136,32 @@ import gama.ui.diagram.metamodel.ETaskLink;
 import gama.ui.diagram.metamodel.EWorldAgent;
 import gama.ui.diagram.metamodel.GamaFactory;
 
+/**
+ * The Class GamaFeatureProvider.
+ */
 public class GamaFeatureProvider extends DefaultFeatureProvider {
 
+	/** The type of model. */
 	private String typeOfModel;
+
+	/** The imported model. */
 	private EGamaModel importedModel;
 
+	/**
+	 * Instantiates a new gama feature provider.
+	 *
+	 * @param dtp
+	 *            the dtp
+	 */
 	public GamaFeatureProvider(final IDiagramTypeProvider dtp) {
 		super(dtp);
 	}
 
+	/**
+	 * Checks if is live.
+	 *
+	 * @return true, if is live
+	 */
 	public boolean isLive() {
 		return getDiagramTypeProvider().getDiagramBehavior().getDiagramContainer() instanceof GamaDiagramEditor editor
 				&& editor.isLive();
@@ -184,16 +201,16 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 	}
 
 	@Override
-	public ICreateFeature[] getCreateFeatures() {
-		return new ICreateFeature[] {};
-	}
+	public ICreateFeature[] getCreateFeatures() { return new ICreateFeature[] {}; }
 
+	/**
+	 * Inits the.
+	 */
 	public void init() {
 		final Diagram diagram = getDiagramTypeProvider().getDiagram();
 		if (!diagram.getChildren().isEmpty()) return;
-		if ("custom".equals(typeOfModel) && importedModel == null) {
+		if ("custom".equals(typeOfModel) && importedModel == null)
 			throw new IllegalStateException("No description-based model was supplied to the diagram importer");
-		}
 		final TransactionalEditingDomain domain = TransactionUtil.getEditingDomain(diagram);
 		domain.getCommandStack().execute(new RecordingCommand(domain) {
 			@Override
@@ -222,6 +239,12 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 		});
 	}
 
+	/**
+	 * Replace imported model.
+	 *
+	 * @param model
+	 *            the model
+	 */
 	void replaceImportedModel(final EGamaModel model) {
 		final Diagram diagram = getDiagramTypeProvider().getDiagram();
 		final var editor = (GamaDiagramEditor) getDiagramTypeProvider().getDiagramBehavior().getDiagramContainer();
@@ -241,10 +264,18 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 		((GamaDiagramBehavior) behavior).bufferSelection(layout.restore(diagram));
 	}
 
+	/**
+	 * Adds the imported model.
+	 *
+	 * @param diagram
+	 *            the diagram
+	 * @param editor
+	 *            the editor
+	 */
 	private void addImportedModel(final Diagram diagram, final GamaDiagramEditor editor) {
 		diagram.eResource().getContents().add(importedModel);
 		for (final EGamaObject object : importedModel.getObjects()) {
-			if (object instanceof EParameter || object instanceof EMonitor) continue;
+			if (object instanceof EParameter || object instanceof EMonitor) { continue; }
 			addNode(diagram, editor, object, 0, 0);
 		}
 		for (final EGamaLink link : importedModel.getLinks()) {
@@ -253,24 +284,44 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 			final AddConnectionContext context = new AddConnectionContext(
 					Graphiti.getPeService().getChopboxAnchor(source), Graphiti.getPeService().getChopboxAnchor(target));
 			context.setNewObject(link);
-			if (addIfPossible(context) == null) {
+			if (addIfPossible(context) == null)
 				throw new IllegalStateException("Cannot draw imported relation " + link.eClass().getName());
-			}
 		}
 	}
 
-	private void addNode(final Diagram diagram, final GamaDiagramEditor editor, final EGamaObject object,
-			final int x, final int y) {
+	/**
+	 * Adds the node.
+	 *
+	 * @param diagram
+	 *            the diagram
+	 * @param editor
+	 *            the editor
+	 * @param object
+	 *            the object
+	 * @param x
+	 *            the x
+	 * @param y
+	 *            the y
+	 */
+	private void addNode(final Diagram diagram, final GamaDiagramEditor editor, final EGamaObject object, final int x,
+			final int y) {
 		final CreateContext context = new CreateContext();
 		context.setTargetContainer(diagram);
 		context.setLocation(x, y);
 		context.setSize(0, 0);
 		editor.addEOject(object);
-		if (addIfPossible(new AddContext(context, object)) == null) {
+		if (addIfPossible(new AddContext(context, object)) == null)
 			throw new IllegalStateException("Cannot draw imported element " + object.eClass().getName());
-		}
 	}
 
+	/**
+	 * Inits the simple.
+	 *
+	 * @param world
+	 *            the world
+	 * @param diagram
+	 *            the diagram
+	 */
 	public void initSimple(final EWorldAgent world, final Diagram diagram) {
 		final CreateGuiExperimentLinkFeature create = new CreateGuiExperimentLinkFeature(this);
 		final PictogramElement worldShape = getPictogramElementForBusinessObject(world);
@@ -281,13 +332,21 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 		create.create(context, false);
 	}
 
+	/**
+	 * Inits the skeleton.
+	 *
+	 * @param world
+	 *            the world
+	 * @param diagram
+	 *            the diagram
+	 */
 	public void initSkeleton(final EWorldAgent world, final Diagram diagram) {
 		initSimple(world, diagram);
 		for (final org.eclipse.graphiti.mm.pictograms.Shape shape : diagram.getChildren()) {
 			if (getBusinessObjectForPictogramElement(shape) instanceof EExperiment) {
 				final CreateConnectionContext context = new CreateConnectionContext();
 				context.setSourcePictogramElement(shape);
-				context.setSourceAnchor(Graphiti.getPeService().getChopboxAnchor((AnchorContainer) shape));
+				context.setSourceAnchor(Graphiti.getPeService().getChopboxAnchor(shape));
 				context.setTargetLocation(new org.eclipse.graphiti.internal.datatypes.impl.LocationImpl(800, 50));
 				new CreateDisplayLinkFeature(this).create(context, false);
 				break;
@@ -313,21 +372,20 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 	public ICreateConnectionFeature[] getCreateConnectionFeatures() {
 		if (isLive()) return new ICreateConnectionFeature[0];
 		return new ICreateConnectionFeature[] { new CreateSubSpeciesLinkFeature(this),
-				new CreateSubGridLinkFeature(this),
-				new CreateClassLinkFeature(this), new CreateClassInheritingLinkFeature(this),
-				new CreateGuiExperimentLinkFeature(this),
-				new CreateInheritingLinkFeature(this),
-				new CreateActionLinkFeature(this), new CreateReflexLinkFeature(this), new CreateAspectLinkFeature(this),
-				new CreateDisplayLinkFeature(this),
-				new CreateBatchExperimentLinkFeature(this), new CreateTestExperimentLinkFeature(this), new CreatePlanLinkFeature(this),
+				new CreateSubGridLinkFeature(this), new CreateClassLinkFeature(this),
+				new CreateClassInheritingLinkFeature(this), new CreateGuiExperimentLinkFeature(this),
+				new CreateInheritingLinkFeature(this), new CreateActionLinkFeature(this),
+				new CreateReflexLinkFeature(this), new CreateAspectLinkFeature(this),
+				new CreateDisplayLinkFeature(this), new CreateBatchExperimentLinkFeature(this),
+				new CreateTestExperimentLinkFeature(this), new CreatePlanLinkFeature(this),
 				new CreateTaskLinkFeature(this), new CreateStateLinkFeature(this), new CreateRuleLinkFeature(this),
 				new CreateEquationLinkFeature(this), new CreatePerceiveLinkFeature(this) };
 	}
 
 	@Override
 	public ICustomFeature[] getCustomFeatures(final ICustomContext context) {
-		if (isLive()) return new ICustomFeature[] {
-				new LayoutDiagramFeature(this), new ChangeColorEGamaObjectFeature(this) };
+		if (isLive())
+			return new ICustomFeature[] { new LayoutDiagramFeature(this), new ChangeColorEGamaObjectFeature(this) };
 		return new ICustomFeature[] { new ModelGenerationFeature(this), new LayoutDiagramFeature(this),
 				new ChangeColorEGamaObjectFeature(this) };
 	}
@@ -341,7 +399,9 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 	public IDeleteFeature getDeleteFeature(final IDeleteContext context) {
 		if (isLive()) return new DefaultDeleteFeature(this) {
 			@Override
-			public boolean canDelete(final IDeleteContext deleteContext) { return false; }
+			public boolean canDelete(final IDeleteContext deleteContext) {
+				return false;
+			}
 		};
 		return new CustomDeleteFeature(this);
 	}
@@ -354,15 +414,31 @@ public class GamaFeatureProvider extends DefaultFeatureProvider {
 	@Override
 	public IUpdateFeature getUpdateFeature(final IUpdateContext context) {
 		if (context.getPictogramElement() instanceof ContainerShape
-				&& getBusinessObjectForPictogramElement(context.getPictogramElement()) instanceof EGamaObject) {
+				&& getBusinessObjectForPictogramElement(context.getPictogramElement()) instanceof EGamaObject)
 			return new UpdateEGamaObjectFeature(this);
-		}
 		return super.getUpdateFeature(context);
 	}
 
+	/**
+	 * Gets the type of model.
+	 *
+	 * @return the type of model
+	 */
 	public String getTypeOfModel() { return typeOfModel; }
 
+	/**
+	 * Sets the type of model.
+	 *
+	 * @param typeOfModel
+	 *            the new type of model
+	 */
 	public void setTypeOfModel(final String typeOfModel) { this.typeOfModel = typeOfModel; }
 
+	/**
+	 * Sets the imported model.
+	 *
+	 * @param model
+	 *            the new imported model
+	 */
 	public void setImportedModel(final EGamaModel model) { importedModel = model; }
 }
