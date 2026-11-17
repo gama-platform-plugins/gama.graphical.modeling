@@ -17,6 +17,7 @@ Presentation undo history is cleared when a new source projection is applied.
 
 The live view uses the single-selection tool without a palette. The toolbar
 provides zoom in, fit and zoom out controls in both live and editable diagrams.
+Pinch or expand on a trackpad over the diagram to zoom out or in.
 Diagrams initially fit the view and continue to fit when it is resized. Manual
 zooming or dragging the background leaves fit mode; use **Fit** to restore it.
 Dragging empty space pans the canvas without marquee selection.
