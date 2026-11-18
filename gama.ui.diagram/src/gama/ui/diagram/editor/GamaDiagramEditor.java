@@ -21,7 +21,6 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.transaction.RecordingCommand;
 import org.eclipse.emf.transaction.TransactionalEditingDomain;
 import org.eclipse.emf.transaction.util.TransactionUtil;
-import org.eclipse.core.runtime.Platform;
 import org.eclipse.draw2d.Figure;
 import org.eclipse.draw2d.geometry.Point;
 import org.eclipse.draw2d.geometry.Rectangle;
@@ -44,9 +43,6 @@ import org.eclipse.graphiti.ui.editor.DiagramEditor;
 import org.eclipse.graphiti.util.IColorConstant;
 import org.eclipse.swt.SWT;
 import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.resource.ImageDescriptor;
-import org.eclipse.jface.resource.JFaceResources;
-import org.eclipse.jface.resource.LocalResourceManager;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -341,12 +337,8 @@ public class GamaDiagramEditor extends DiagramEditor implements IGamlBuilderList
 				event -> zoom(1 / 1.2), SWT.RIGHT);
 
 		if (isLive()) {
-			final ToolItem edit = toolbar.button(null, "", "Edit an independent diagram snapshot",
+			toolbar.button("toolbar/editor.edit", "", "Edit an independent diagram snapshot",
 					event -> SaveDiagramSnapshotFeature.edit(this), SWT.RIGHT);
-			final var images = new LocalResourceManager(JFaceResources.getResources(), toolbar);
-			edit.setImage(images.createImage(ImageDescriptor.createFromURL(
-					Platform.getBundle("gama.ui.diagram").getEntry("icons/edit-snapshot.svg"))));
-			toolbar.requestLayout();
 			liveStatus = new Label(parent, SWT.WRAP);
 			liveStatus.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 			liveStatus.setText("Waiting for a valid GAML model...");
